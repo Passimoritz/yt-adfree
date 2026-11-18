@@ -10,6 +10,7 @@
   <img alt="Chrome" src="https://img.shields.io/badge/Chrome-ab%20111-15172E">
   <img alt="Firefox" src="https://img.shields.io/badge/Firefox-ab%20128-15172E">
   <img alt="Version" src="https://img.shields.io/badge/Version-1.2.2-0E7C6B">
+  <img alt="Lizenz" src="https://img.shields.io/badge/Lizenz-MIT-15172E">
   <br>
   <a href="README.md">English</a> · <b>Deutsch</b>
 </p>
@@ -80,6 +81,8 @@ Fällt eine Quelle aus, versucht die Erweiterung Spiegelserver. Ohne Internet bl
 
 ### Chrome, Edge, Brave
 
+Code holen: dieses Repository klonen oder `yt-adfree-<version>-chrome.zip` unter [Releases](../../releases) herunterladen und entpacken.
+
 1. `chrome://extensions` öffnen
 2. oben rechts den **Entwicklermodus** einschalten
 3. **„Entpackte Erweiterung laden“** und diesen Ordner wählen
@@ -90,6 +93,8 @@ Fällt eine Quelle aus, versucht die Erweiterung Spiegelserver. Ohne Internet bl
 Den Ordner danach nicht verschieben, Chrome lädt die Erweiterung direkt von dort. Nach einem Update bei der Erweiterung auf ↻ klicken **und** die YouTube-Tabs neu laden – offene Tabs führen bis dahin den alten Code aus.
 
 ### Firefox (ab 128)
+
+`yt-adfree-<version>-firefox.zip` unter [Releases](../../releases) nehmen (entpackt) oder selbst bauen:
 
 ```bash
 node build-firefox.js
@@ -137,5 +142,11 @@ Die Skripte starten das installierte Chrome mit einem leeren Testprofil, dein ei
 - Links mit Startzeit (`&t=…`) starten an der richtigen Stelle, aber erst nach einigen Sekunden.
 - Werbung nur durchzuspulen hilft allein nicht: YouTubes Server hält das Video dann so lange zurück, wie die Werbung gedauert hätte (gemessen). Darum setzt YT AdFree darauf, dass gar keine Werbung eingeplant wird.
 - Ob YouTube in den Stream eingebettete Werbung immer als Werbung markiert, ließ sich nicht prüfen; in den Testläufen kam keine vor.
+
+## Lizenz
+
+[MIT](LICENSE) für den eigenen Code von YT AdFree. Die zur Laufzeit geladenen Filterlisten behalten ihre eigenen Lizenzen, siehe [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (englisch). Änderungen je Version: [CHANGELOG.md](CHANGELOG.md) (englisch).
+
+YT AdFree ist ein unabhängiges Projekt und gehört nicht zu Google oder YouTube.
 
 <sub>Logo entworfen in Claude Design. Die Filterregeln stammen von der [uBlock-Origin](https://github.com/uBlockOrigin/uAssets)-Community und [EasyList](https://easylist.to) und werden zur Laufzeit geladen, nicht mitgeliefert.</sub>

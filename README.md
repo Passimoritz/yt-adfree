@@ -10,6 +10,7 @@
   <img alt="Chrome" src="https://img.shields.io/badge/Chrome-111%2B-15172E">
   <img alt="Firefox" src="https://img.shields.io/badge/Firefox-128%2B-15172E">
   <img alt="Version" src="https://img.shields.io/badge/version-1.2.2-0E7C6B">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-15172E">
   <br>
   <b>English</b> · <a href="README.de.md">Deutsch</a>
 </p>
@@ -78,6 +79,8 @@ If a source is down, mirrors are tried. Offline, the last rules stay active, and
 
 ### Chrome, Edge, Brave
 
+Get the code: clone this repository, or download `yt-adfree-<version>-chrome.zip` from [Releases](../../releases) and unpack it.
+
 1. Open `chrome://extensions`
 2. Turn on **Developer mode** (top right)
 3. Click **Load unpacked** and pick this folder
@@ -88,6 +91,8 @@ If a source is down, mirrors are tried. Offline, the last rules stay active, and
 Don’t move the folder afterwards – Chrome loads the extension straight from there. After an update, click ↻ on the extension **and** reload your YouTube tabs; open tabs keep running the old code until then.
 
 ### Firefox (128+)
+
+Use `yt-adfree-<version>-firefox.zip` from [Releases](../../releases) (unpacked), or build it yourself:
 
 ```bash
 node build-firefox.js
@@ -135,5 +140,11 @@ The scripts start your installed Chrome with an empty test profile; your own pro
 - Links with a start time (`&t=…`) start at the right spot, but only after a few seconds.
 - Fast-forwarding ads does not help on its own: YouTube’s servers then hold the video back for the length of the ad (measured). That is why YT AdFree relies on no ad being scheduled at all.
 - Whether YouTube always marks ads stitched into the stream as ads could not be verified; none showed up in the test runs.
+
+## License
+
+[MIT](LICENSE) for YT AdFree’s own code. The filter lists it downloads at runtime keep their own licenses, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Changes per version: [CHANGELOG.md](CHANGELOG.md).
+
+YT AdFree is an independent project, not affiliated with Google or YouTube.
 
 <sub>Logo designed in Claude Design. The filter rules come from the [uBlock Origin](https://github.com/uBlockOrigin/uAssets) community and [EasyList](https://easylist.to); they are downloaded at runtime, not bundled.</sub>
