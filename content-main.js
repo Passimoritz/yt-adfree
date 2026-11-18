@@ -317,7 +317,7 @@
     watched.add(v);
     v.addEventListener('pause', () => {
       const p = player();
-      diag('pause', { t: +v.currentTime.toFixed(1), user: Date.now() - lastGesture < 1500, ad: inAd(p), hidden: document.hidden });
+      diag('pause', { t: +v.currentTime.toFixed(1), user: Date.now() - lastGesture < 1500, ad: inAd(p), hidden: document.hidden, rs: v.readyState, by: lastPause && Date.now() - lastPause.ts < 300 ? lastPause.by : 'kein pause()-Aufruf' });
       if (v.ended || inAd(p) || document.hidden || Date.now() - lastGesture < 1500) return;
       if (document.querySelector('tp-yt-paper-dialog[opened]:not(:has(ytd-enforcement-message-view-model))')) return; // z. B. „Video pausiert. Weiter ansehen?“
       const now = Date.now();
@@ -328,13 +328,47 @@
     });
   }
 
+  // YouTube-Hinweis „Kommt es zu Unterbrechungen?“ finden: Text + Elementpfad (für gezieltes Ausblenden)
+  const HINT_RE = /Unterbrechung|interruption/i;
+  let hintCheck = 0;
+  function findHint() {
+    if (Date.now() - hintCheck < 4000) return toastSeen ? { again: true } : null;
+    hintCheck = Date.now();
+    const root = document.body;
+    if (!root || !HINT_RE.test(root.textContent || '')) return null;
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (HINT_RE.test(n.nodeValue) && !(n.parentElement && /^(SCRIPT|STYLE)$/.test(n.parentElement.tagName)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP) });
+    const n = w.nextNode();
+    if (!n) return null;
+    const chain = [];
+    for (let el = n.parentElement; el && el !== root && chain.length < 10; el = el.parentElement) {
+      chain.push(el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.classList.length ? '.' + [...el.classList].slice(0, 3).join('.') : ''));
+    }
+    const box = n.parentElement.getBoundingClientRect();
+    return { text: n.nodeValue.trim().slice(0, 100), path: chain.join(' < '), visible: box.width > 0 && box.height > 0 };
+  }
+
+  // Wer hält das Video an? Aufrufer von pause() merken (zeigt YouTube-Code oder andere Erweiterung)
+  let lastPause = null;
+  try {
+    const nativePause = HTMLMediaElement.prototype.pause;
+    HTMLMediaElement.prototype.pause = disguise(function pause() {
+      try {
+        const st = (new Error().stack || '').split('\n').slice(2, 9)
+          .map((l) => { const m = l.match(/(?:https?|chrome-extension):\/\/([^/\s)]+)\/([^\s)]*?)(?::(\d+):\d+)?\)?$/); return m ? (m[1].slice(0, 12) + '/' + m[2].split('/').pop().slice(0, 40) + ':' + (m[3] || '')) : null; })
+          .filter(Boolean);
+        lastPause = { ts: Date.now(), by: st.slice(0, 5) };
+      } catch {}
+      return nativePause.apply(this, arguments);
+    }, nativePause);
+  } catch {}
+
   // Ablauf je Video protokollieren: erstes Bild, Hänger, Pausen, YouTube-Hinweis „Unterbrechungen“
   let cur = null, toastSeen = false;
   setInterval(() => {
     const p = player(), v = p && p.querySelector('video');
-    const toast = !!document.querySelector('tp-yt-paper-toast[opened], yt-notification-action-renderer') && /Unterbrechung|interruption/i.test((document.querySelector('tp-yt-paper-toast[opened]') || {}).textContent || '');
-    if (toast && !toastSeen) diag('yt-hint', { text: ((document.querySelector('tp-yt-paper-toast[opened]') || {}).textContent || '').trim().slice(0, 80) });
-    toastSeen = toast;
+    const hint = findHint();
+    if (hint && !toastSeen) diag('yt-hint', hint);
+    toastSeen = !!hint;
     if (!v) return;
     watch(v);
     const data = p.getVideoData && p.getVideoData();
