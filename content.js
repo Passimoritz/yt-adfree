@@ -46,6 +46,27 @@
   api.storage.local.get('cfg').then((r) => useConfig(r && r.cfg)).catch(() => {});
   api.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.cfg) useConfig(ch.cfg.newValue); });
 
+  // ---------- Diagnose: letzte 400 Ereignisse lokal speichern (verlässt den Rechner nie)
+  if (window.top === window) {
+    let buf = null, timer = null;
+    document.addEventListener('ytaf:diag', (e) => {
+      if (typeof e.detail !== 'string' || e.detail.length > 2000) return;
+      (buf ||= []).push(e.detail);
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        const add = buf; buf = null;
+        try {
+          const r = await api.storage.local.get('diag');
+          const list = [...(r.diag || []), ...add].slice(-400);
+          await api.storage.local.set({ diag: list });
+        } catch {}
+      }, 1500);
+    });
+    const ready = () => document.dispatchEvent(new CustomEvent('ytaf:diag-ready'));
+    document.addEventListener('ytaf:diag-hello', ready);
+    ready();
+  }
+
   // ---------- Reserve-Überspringer
   const SKIP = '.ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad button, button[id^="skip-button"]';
   const seen = new WeakSet();

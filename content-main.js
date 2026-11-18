@@ -26,6 +26,22 @@
   const SS_IDX = '__ytaf_pidx', SS_RETRY = '__ytaf_retry';
 
   const nativeParse = JSON.parse;
+  const nativeStr = JSON.stringify;
+  // Diagnose: kurze Ereignisse an content.js (speichert die letzten 400 lokal in der Erweiterung)
+  const t0 = Date.now();
+  let diagReady = false; const diagQueue = [];
+  const onReady = () => { if (diagReady) return; diagReady = true; for (const d of diagQueue.splice(0)) document.dispatchEvent(new CustomEvent('ytaf:diag', { detail: d })); };
+  document.addEventListener('ytaf:diag-ready', onReady);
+  document.dispatchEvent(new CustomEvent('ytaf:diag-hello'));
+  function diag(ev, data) {
+    try {
+      const d = nativeStr({ ts: Date.now(), ev, url: location.pathname + location.search.slice(0, 40), ...data });
+      if (diagReady) document.dispatchEvent(new CustomEvent('ytaf:diag', { detail: d }));
+      else if (diagQueue.length < 50) diagQueue.push(d);
+      console.debug('[YT AdFree]', ev, d);
+    } catch {}
+  }
+  diag('page', { since: Date.now() - t0 });
   let rules = [];
   let timers = [];
   let params = DEFAULT_PARAMS;
@@ -97,13 +113,15 @@
     if (!ctx || !ctx.client || ctx.client.clientName !== 'WEB') return; // Einbettungen, TV, Musik unverändert lassen
     const p = params[paramIdx()];
     if (!p) return;
+    diag('req', { vid: req.videoId, client: ctx.client.clientName, ver: ctx.client.clientVersion, had: req.params || null, set: p, loggedIn: (() => { try { return window.ytcfg.get('LOGGED_IN'); } catch { return null; } })() });
     req.params = p;
     tweakedVideo = req.videoId;
   }
 
   function hasAds(o) { return !!o && typeof o === 'object' && ('adSlots' in o || 'adPlacements' in o || 'playerAds' in o); }
 
-  function reloadVideo(id) {
+  function reloadVideo(id, why) {
+    diag('reload', { vid: id, why: why || '?' });
     const tryIt = (n) => {
       const p = document.getElementById('movie_player');
       if (p && typeof p.loadVideoById === 'function') p.loadVideoById({ videoId: id });
@@ -118,10 +136,11 @@
       // Anfrage mit Kennung wurde abgelehnt → nächste Kennung (oder keine) und einmal neu laden
       const st = obj.playabilityStatus && obj.playabilityStatus.status;
       const vid = obj.videoDetails && obj.videoDetails.videoId;
+      if (st) diag('resp', { vid, st, reason: obj.playabilityStatus.reason || null, ads: Object.keys(obj).filter((k) => /^ad|[a-z]Ads?$|^playerAds/.test(k)), sabr: !!(obj.streamingData && obj.streamingData.serverAbrStreamingUrl), tweaked: vid === tweakedVideo });
       if (st === 'UNPLAYABLE' && tweakedVideo && vid === tweakedVideo && ss(SS_RETRY) !== vid) {
         ss(SS_RETRY, vid);
         ss(SS_IDX, String(paramIdx() + 1));
-        nativeSetTimeout(() => reloadVideo(vid), 0);
+        nativeSetTimeout(() => reloadVideo(vid, 'unplayable'), 0);
       }
       for (const r of rules) del(obj, r, 0);
     } catch { /* nie die Seite kaputt machen */ }
@@ -177,7 +196,8 @@
         const id = v && v.videoDetails && v.videoDetails.videoId;
         // Links mit Startzeit (&t=…) nicht nachladen: das Nachladen verliert dort die Startposition (getestet)
         const hasStart = /[?&](t|start)=/.test(location.search);
-        if (id && hasAds(v) && !hasStart && params[paramIdx()] && /\/watch/.test(location.pathname)) nativeSetTimeout(() => reloadVideo(id), 0);
+        if (id) diag('initial', { vid: id, ads: hasAds(v), hasStart, st: v.playabilityStatus && v.playabilityStatus.status });
+        if (id && hasAds(v) && !hasStart && params[paramIdx()] && /\/watch/.test(location.pathname)) nativeSetTimeout(() => reloadVideo(id, 'initial-ads'), 0);
       } catch {}
       return prune(v);
     };
@@ -215,7 +235,7 @@
   // 1) Pause, die nicht von dir kommt (kein Klick/Taste/Medientaste kurz davor) → weiterspielen.
   // 2) Video hängt lange beim Laden an derselben Stelle (YouTube hält den Stream zurück)
   //    → an genau dieser Stelle neu anfordern, dann mit werbefreier Kennung.
-  const dbg = (...a) => { try { console.debug('[YT AdFree]', ...a); } catch {} };
+  const dbg = (ev, data) => diag(ev, data);
   let lastGesture = 0;
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, () => { lastGesture = Date.now(); }, true);
   try {
@@ -237,28 +257,38 @@
     watched.add(v);
     v.addEventListener('pause', () => {
       const p = player();
+      diag('pause', { t: +v.currentTime.toFixed(1), user: Date.now() - lastGesture < 1500, ad: inAd(p), hidden: document.hidden });
       if (v.ended || inAd(p) || document.hidden || Date.now() - lastGesture < 1500) return;
       if (document.querySelector('tp-yt-paper-dialog[opened]:not(:has(ytd-enforcement-message-view-model))')) return; // z. B. „Video pausiert. Weiter ansehen?“
       const now = Date.now();
       while (resumes.length && now - resumes[0] > 60000) resumes.shift();
       if (resumes.length >= 3) return; // nie gegen YouTube anspielen
       resumes.push(now);
-      nativeSetTimeout(() => { if (v.paused && !v.ended && !inAd(player()) && Date.now() - lastGesture > 1500) { dbg('ungewollte Pause bei', v.currentTime.toFixed(1), 's – weiter'); v.play().catch(() => {}); } }, 250);
+      nativeSetTimeout(() => { if (v.paused && !v.ended && !inAd(player()) && Date.now() - lastGesture > 1500) { dbg('resume', { t: +v.currentTime.toFixed(1) }); v.play().catch(() => {}); } }, 250);
     });
   }
 
+  // Ablauf je Video protokollieren: erstes Bild, Hänger, Pausen, YouTube-Hinweis „Unterbrechungen“
+  let cur = null, toastSeen = false;
   setInterval(() => {
     const p = player(), v = p && p.querySelector('video');
+    const toast = !!document.querySelector('tp-yt-paper-toast[opened], yt-notification-action-renderer') && /Unterbrechung|interruption/i.test((document.querySelector('tp-yt-paper-toast[opened]') || {}).textContent || '');
+    if (toast && !toastSeen) diag('yt-hint', { text: ((document.querySelector('tp-yt-paper-toast[opened]') || {}).textContent || '').trim().slice(0, 80) });
+    toastSeen = toast;
     if (!v) return;
     watch(v);
+    const data = p.getVideoData && p.getVideoData();
+    const id = data && data.video_id;
+    if (id && (!cur || cur.id !== id)) cur = { id, start: Date.now(), first: false, stallLogged: 0 };
+    if (cur && !cur.first && v.currentTime > 0.2 && !inAd(p)) { cur.first = true; diag('first-frame', { vid: id, ms: Date.now() - cur.start }); }
+    if (cur && !cur.first && Date.now() - cur.start > 8000 && !cur.slow) { cur.slow = true; diag('slow-start', { vid: id, rs: v.readyState, paused: v.paused, ps: p.getPlayerState && p.getPlayerState(), ad: inAd(p), buf: v.buffered.length }); }
     const loading = !v.paused && !v.ended && v.readyState < 3 && !inAd(p) && /\/watch/.test(location.pathname);
     if (!loading || Math.abs(v.currentTime - stallAt) > 0.5) { stallSince = loading ? Date.now() : 0; stallAt = v.currentTime; return; }
-    if (stallSince && Date.now() - stallSince > 6000 && Date.now() - lastReload > 30000 && typeof p.loadVideoById === 'function') {
-      const data = p.getVideoData && p.getVideoData();
-      const id = data && data.video_id;
-      if (!id) return;
+    if (stallSince && Date.now() - stallSince > 3000 && cur && cur.stallLogged !== Math.round(stallAt)) { cur.stallLogged = Math.round(stallAt); diag('stall', { vid: id, t: +v.currentTime.toFixed(1), rs: v.readyState }); }
+    // Neu anfordern nur mitten im Video – beim Start würde das den Ladevorgang abbrechen
+    if (v.currentTime > 1 && stallSince && Date.now() - stallSince > 6000 && Date.now() - lastReload > 30000 && typeof p.loadVideoById === 'function' && id) {
       lastReload = Date.now(); stallSince = 0;
-      dbg('hängt seit 6 s bei', v.currentTime.toFixed(1), 's – neu anfordern');
+      dbg('stall-reload', { t: +v.currentTime.toFixed(1), rs: v.readyState });
       p.loadVideoById({ videoId: id, startSeconds: Math.max(0, v.currentTime - 0.5) });
     }
   }, 1000);
