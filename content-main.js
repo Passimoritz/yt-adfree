@@ -190,4 +190,24 @@
       });
     } catch {}
   }
+
+  // ---------- Anti-Adblock-Dialog richtig schließen
+  // Nur unsichtbar machen reicht nicht: der Dialog sperrt weiter das Scrollen (Polymer-Scroll-Sperre)
+  // und hält das Video an. Darum über seine eigene close()-Methode schließen und entfernen.
+  function closeEnforcement() {
+    const msgs = document.querySelectorAll('ytd-enforcement-message-view-model');
+    if (!msgs.length) return;
+    for (const m of msgs) {
+      const d = m.closest('tp-yt-paper-dialog');
+      try { if (d && typeof d.close === 'function') d.close(); } catch {}
+      (d || m).remove();
+    }
+    if (!document.querySelector('tp-yt-paper-dialog[opened]')) {
+      document.querySelectorAll('tp-yt-iron-overlay-backdrop').forEach((b) => { try { b.close && b.close(); } catch {} b.remove(); });
+      for (const el of [document.documentElement, document.body]) if (el && el.style.overflow === 'hidden') el.style.overflow = '';
+    }
+    const v = document.querySelector('#movie_player video');
+    if (v && v.paused && !v.ended) v.play().catch(() => {});
+  }
+  setInterval(closeEnforcement, 300);
 })();

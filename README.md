@@ -14,7 +14,7 @@
   <img alt="Manifest V3" src="https://img.shields.io/badge/Manifest-V3-0E7C6B">
   <img alt="Chrome" src="https://img.shields.io/badge/Chrome-ab%20111-15172E">
   <img alt="Firefox" src="https://img.shields.io/badge/Firefox-ab%20128-15172E">
-  <img alt="Version" src="https://img.shields.io/badge/Version-1.1.0-0E7C6B">
+  <img alt="Version" src="https://img.shields.io/badge/Version-1.1.1-0E7C6B">
 </p>
 
 ---
