@@ -1,7 +1,7 @@
-// Läuft im Erweiterungskontext ab document_start.
-// - Blendet Werbeflächen per CSS aus (eingebaute + automatisch geladene Selektoren)
-// - Reicht die aktuellen Regeln an content-main.js weiter (über localStorage)
-// - Reserve: läuft trotzdem Werbung (.ad-showing), wird sie übersprungen bzw. stumm durchgespult
+// Runs in the extension context from document_start.
+// - Hides ad slots via CSS (built-in + automatically loaded selectors)
+// - Passes the current rules on to content-main.js (via localStorage)
+// - Fallback: if an ad still plays (.ad-showing), it is skipped or fast-forwarded muted
 (() => {
   'use strict';
   const api = globalThis.browser ?? globalThis.chrome;
@@ -31,7 +31,7 @@
     const remove = new Set(cfg?.exceptions || []);
     const sels = [...new Set([...BASE_SELECTORS, ...(cfg?.selectors || [])])].filter((s) => !remove.has(s) && valid(s));
     style.textContent = sels.length ? sels.join(',\n') + '{display:none!important}' : '';
-    // Läuft doch eine Werbung (Überspring-Modus), bleibt das Bild schwarz, bis sie weggespult ist
+    // If an ad does play (skip mode), the picture stays black until it has been fast-forwarded
     style.textContent += '\n.html5-video-player.ad-showing video,.html5-video-player.ad-showing .ytp-ad-player-overlay-layout{opacity:0!important}';
     if (!style.isConnected) (document.head || document.documentElement).appendChild(style);
   }
@@ -48,7 +48,7 @@
   api.storage.local.get('cfg').then((r) => useConfig(r && r.cfg)).catch(() => {});
   api.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.cfg) useConfig(ch.cfg.newValue); });
 
-  // ---------- Diagnose: letzte 400 Ereignisse lokal speichern (verlässt den Rechner nie)
+  // ---------- Diagnostics: store the last 400 events locally (never leaves the computer)
   if (window.top === window) {
     let buf = null, timer = null;
     document.addEventListener('ytaf:diag', (e) => {
@@ -71,11 +71,11 @@
 
   const diag = (ev, d) => { try { document.dispatchEvent(new CustomEvent('ytaf:diag', { detail: JSON.stringify({ ts: Date.now(), ev, url: location.pathname + location.search.slice(0, 40), ...d }) })); } catch {} };
 
-  // ---------- Reserve-Überspringer
+  // ---------- Fallback skipper
   const SKIP = '.ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad button, button[id^="skip-button"]';
   const seen = new WeakSet();
-  const state = new WeakMap(); // Player -> gemerkter Zustand vor der Werbung
-  const contentDur = new WeakMap(); // Player -> Länge des eigentlichen Videos
+  const state = new WeakMap(); // player -> state saved before the ad
+  const contentDur = new WeakMap(); // player -> duration of the actual video
 
   function handle(player) {
     const video = player.querySelector('video');
@@ -90,8 +90,8 @@
       }
       player.querySelectorAll(SKIP).forEach((b) => b.click());
       video.muted = true;
-      // Eigene kurze Werbedatei → ans Ende springen. Eingebettete Werbung (gleiche Datei wie das Video,
-      // erkennbar an gleicher Länge) → nur schnell durchspulen, sonst landet man am Ende kurzer Videos.
+      // Separate short ad file → jump to the end. Embedded ad (same file as the video,
+      // recognisable by the same duration) → only fast-forward, otherwise short videos would jump to their end.
       const ownFile = !s.dur || Math.abs(video.duration - s.dur) > 1;
       if (ownFile && Number.isFinite(video.duration) && video.duration > 0 && video.duration <= 180) {
         if (video.currentTime < video.duration - 0.1) video.currentTime = video.duration - 0.05;
@@ -115,7 +115,7 @@
     handle(player);
   }
 
-  // Leichter Takt: neue Player finden + laufende Werbung nachfassen (Skip-Button erscheint verzögert)
+  // Light tick: find new players + follow up on running ads (the skip button appears with a delay)
   setInterval(() => {
     document.querySelectorAll('.html5-video-player').forEach((p) => {
       attach(p);

@@ -1,5 +1,5 @@
-// Erzeugt die Firefox-Fassung im Ordner firefox/ (gleicher Code, angepasstes Manifest).
-// Aufruf: node build-firefox.js
+// Builds the Firefox version in the firefox/ folder (same code, adapted manifest).
+// Usage: node build-firefox.js
 const fs = require('fs');
 const path = require('path');
 
@@ -17,4 +17,4 @@ m.background = { scripts: ['background.js'] };
 m.browser_specific_settings = { gecko: { id: 'yt-adfree@local', strict_min_version: '128.0' } };
 fs.writeFileSync(path.join(out, 'manifest.json'), JSON.stringify(m, null, 2) + '\n');
 
-console.log('Firefox-Fassung erstellt:', out);
+console.log('Firefox build created:', out);

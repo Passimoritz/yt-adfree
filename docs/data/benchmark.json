@@ -1,0 +1,206 @@
+{
+ "date": "2026-11-18",
+ "browser": "Chrome 157",
+ "cap": 35,
+ "note": "\"in\" = signed-in code path simulated with a patched copy (no real account).",
+ "runs": {
+  "none": {
+   "direct": [
+    {
+     "vid": "kJQP7kiw5Fk",
+     "first": 3.95,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "9bZkp7q19f0",
+     "first": null,
+     "ad": true,
+     "hint": false
+    },
+    {
+     "vid": "JGwWNGJdvx8",
+     "first": 21.88,
+     "ad": true,
+     "hint": false
+    },
+    {
+     "vid": "RgKAFK5djSk",
+     "first": 23.46,
+     "ad": true,
+     "hint": false
+    },
+    {
+     "vid": "fJ9rUzIMcZQ",
+     "first": 17.18,
+     "ad": true,
+     "hint": false
+    }
+   ],
+   "click": [
+    {
+     "vid": "PadKCVBIN94",
+     "first": 0.31,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "o-0ygW-B_gI",
+     "first": null,
+     "ad": true,
+     "hint": false
+    },
+    {
+     "vid": "uEAygM5OCDc",
+     "first": null,
+     "ad": true,
+     "hint": false
+    },
+    {
+     "vid": "fm1kKX6QqYk",
+     "first": 36.65,
+     "ad": true,
+     "hint": false
+    },
+    {
+     "vid": "LKToRAjZ8fk",
+     "first": 2.17,
+     "ad": false,
+     "hint": false
+    }
+   ]
+  },
+  "out": {
+   "direct": [
+    {
+     "vid": "kJQP7kiw5Fk",
+     "first": 4.34,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "9bZkp7q19f0",
+     "first": 3.74,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "JGwWNGJdvx8",
+     "first": 2.73,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "RgKAFK5djSk",
+     "first": 2.97,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "fJ9rUzIMcZQ",
+     "first": 2.57,
+     "ad": false,
+     "hint": false
+    }
+   ],
+   "click": [
+    {
+     "vid": "d0mvOmWsPGU",
+     "first": 0.92,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "_Uu12zY01ts",
+     "first": 1.23,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "fJ9rUzIMcZQ",
+     "first": 0.81,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "fJ9rUzIMcZQ",
+     "first": 0.84,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "fJ9rUzIMcZQ",
+     "first": 0.95,
+     "ad": false,
+     "hint": false
+    }
+   ]
+  },
+  "in": {
+   "direct": [
+    {
+     "vid": "kJQP7kiw5Fk",
+     "first": 4.22,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "9bZkp7q19f0",
+     "first": 3.04,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "JGwWNGJdvx8",
+     "first": 2.41,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "RgKAFK5djSk",
+     "first": 2.5,
+     "ad": false,
+     "hint": true
+    },
+    {
+     "vid": "fJ9rUzIMcZQ",
+     "first": 2.3,
+     "ad": false,
+     "hint": false
+    }
+   ],
+   "click": [
+    {
+     "vid": "PadKCVBIN94",
+     "first": 0.34,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "o-0ygW-B_gI",
+     "first": 0.28,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "Af0P6XEkI7Y",
+     "first": 0.3,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "gEPmA3USJdI",
+     "first": 0.29,
+     "ad": false,
+     "hint": false
+    },
+    {
+     "vid": "zakKvbIQ28o",
+     "first": 0.34,
+     "ad": false,
+     "hint": false
+    }
+   ]
+  }
+ }
+}

@@ -1,146 +1,139 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/wordmark-dark.svg">
-    <img src="docs/wordmark-light.svg" alt="YT AdFree" width="420">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/banner-dark.svg">
+    <img src="docs/banner-light.svg" alt="YT AdFree – lean YouTube ad blocker for Chrome and Firefox" width="960">
   </picture>
 </p>
 
 <p align="center">
-  Schlanker YouTube-Werbeblocker für Chrome und Firefox.<br>
-  Kein Popup, keine Einstellungen, Regeln aktualisieren sich von selbst.
-</p>
-
-<p align="center">
   <img alt="Manifest V3" src="https://img.shields.io/badge/Manifest-V3-0E7C6B">
-  <img alt="Chrome" src="https://img.shields.io/badge/Chrome-ab%20111-15172E">
-  <img alt="Firefox" src="https://img.shields.io/badge/Firefox-ab%20128-15172E">
-  <img alt="Version" src="https://img.shields.io/badge/Version-1.2.2-0E7C6B">
+  <img alt="Chrome" src="https://img.shields.io/badge/Chrome-111%2B-15172E">
+  <img alt="Firefox" src="https://img.shields.io/badge/Firefox-128%2B-15172E">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.2.2-0E7C6B">
+  <br>
+  <b>English</b> · <a href="README.de.md">Deutsch</a>
 </p>
 
----
+YT AdFree blocks YouTube ads before, during and after videos. There is no popup and nothing to configure, and the blocking rules keep themselves up to date. It also avoids the trap most simple blockers fall into: when an ad is only removed, YouTube holds the video back for as long as the ad would have run. YT AdFree makes sure YouTube never schedules the ad in the first place, so the video starts right away, signed in or not.
 
-## Vorher und nachher
-
-| Ohne Erweiterung | Mit YT AdFree |
-|---|---|
-| ![YouTube mit Werbespot im Player und gesponserter Anzeige rechts](docs/screenshot-ohne.png) | ![YouTube ohne Werbung, das Video läuft direkt](docs/screenshot-mit.png) |
-| Werbespot im Player („Gesponsert · 1 von 2“) und Anzeige in der Seitenleiste | Das Video startet sofort, die Anzeigenfläche ist weg |
-
-## Messwerte
+## Before and after
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/chart-werbung-dark.svg">
-  <img src="docs/chart-werbung-light.svg" alt="Aufrufe mit Werbung: ohne Erweiterung 11 von 11, mit YT AdFree 0 von 17" width="880">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/compare-dark.png">
+  <img src="docs/compare-light.png" alt="Left: YouTube without extension, with an ad in the player and a sponsored slot on the side. Right: with YT AdFree, the video plays right away." width="960">
+</picture>
+
+## Measurements
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/chart-startup-dark.svg">
+  <img src="docs/chart-startup-light.svg" alt="Time until the video starts, without extension versus YT AdFree signed out and signed in" width="960">
 </picture>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/chart-startzeit-dark.svg">
-  <img src="docs/chart-startzeit-light.svg" alt="Zeit bis zum ersten Videobild: vorher 4,6 bis 16,7 Sekunden, jetzt 0,6 bis 1,2 Sekunden" width="880">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/chart-ads-dark.svg">
+  <img src="docs/chart-ads-light.svg" alt="How often an ad played: without extension versus YT AdFree" width="960">
 </picture>
 
 <details>
-<summary>Werte als Tabelle</summary>
+<summary>Numbers as a table</summary>
 
-| Video | Vorher (v1.0) | Jetzt (v1.1) |
-|---|---:|---:|
-| Rick Astley – Never Gonna Give You Up | 9,7 s | 0,6 s |
-| Luis Fonsi – Despacito | 10,3 s | 1,1 s |
-| Ed Sheeran – Shape of You | 16,7 s | 1,2 s |
-| PSY – Gangnam Style | 4,6 s | 1,0 s |
-| Weiterklicken in YouTube (6 Klicks) | 9–15 s | 0,5–0,8 s |
+| Setup | Opening a video link: median (range) | Next video: median (range) | Loads with an ad |
+|---|---:|---:|---:|
+| Without extension | 21.9 s (4.0 s – 35+ s) | 35+ s (0.3 s – 35+ s) | 7 / 10 |
+| YT AdFree · signed out | 3.0 s (2.6 s – 4.3 s) | 0.9 s (0.8 s – 1.2 s) | 0 / 10 |
+| YT AdFree · signed in | 2.5 s (2.3 s – 4.2 s) | 0.3 s (0.3 s – 0.3 s) | 0 / 10 |
 
-| | Aufrufe | davon mit Werbung |
-|---|---:|---:|
-| Ohne Erweiterung | 11 | 11 |
-| Mit YT AdFree | 17 | 0 |
+“35+ s” = the ad was still running after 35 s.
 
-Gemessen am 18.11.2026 mit Chrome 157 (Playwright, unsichtbares Fenster, frisches Profil). „Vorher“ ist v1.0, die die Werbedaten nur entfernt hat. Daraufhin hielt YouTubes Server das Video so lange zurück, wie die Werbung gedauert hätte.
+Measured on 2026-11-18 with Chrome 157 (Playwright, fresh profile, window off-screen) using [`tools/test/benchmark.js`](tools/test/benchmark.js); raw data in [`docs/data/benchmark.json`](docs/data/benchmark.json). Times run from opening the link or clicking until the actual video plays, ad time included. “Signed in” takes the extension’s signed-in code path in a patched copy; a real account was not used.
 </details>
 
-## So funktioniert es
+## How it works
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/architektur-dark.svg">
-  <img src="docs/architektur-light.svg" alt="Aufbau: uBlock-Listen → background.js → content.js → content-main.js; Diagnose-Protokoll lokal" width="880">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.svg">
+  <img src="docs/architecture-light.svg" alt="The player's video request gets an ad-free tag; signed in, only this request goes out without the account; YouTube answers without ads" width="960">
 </picture>
 
-| Ebene | Wie |
+| What | How |
 |---|---|
-| **Werbung vor, in und nach Videos** | Jede Videoanfrage des Players bekommt eine Kennung, bei der YouTube gar keine Werbung einplant. Damit entfällt auch die Strafwartezeit, mit der YouTube auf fehlende Werbung reagiert. Bist du angemeldet, ignoriert YouTube die Kennung – dann geht **nur die Videoanfrage selbst** ohne Konto raus; Kommentare, Empfehlungen, Likes und Verlauf laufen weiter über dein Konto. Braucht ein Video die Anmeldung (Altersfreigabe, Mitglieder, privat), lädt die Erweiterung genau dieses normal. Was trotzdem an Werbedaten ankommt, wird entfernt, bevor der Player es liest (`content-main.js`). |
-| **Eingebettete Werbung und alles, was durchrutscht** | Sobald der Player Werbung anzeigt: „Überspringen“ klicken, stumm schalten, mit 16× durchspulen, danach Ton und Tempo wiederherstellen. Bei eingebetteter Werbung wird nie im Video gesprungen, damit kein Inhalt verloren geht (`content.js`). |
-| **Banner, Feed-Anzeigen, Shorts-Werbung, Overlays, Anti-Adblock-Dialog** | Ausblenden per CSS (`content.js`) |
-| **Anti-Adblock-Dialog, Hänger** | Dialog wird geschlossen statt nur versteckt (sonst sperrt er Scrollen und Video). Ein Wächter setzt Pausen fort, die nicht von dir kommen, und fordert ein mitten im Video hängendes Video neu an (`content-main.js`). |
+| **Ads before, during and after videos** | Every video request from the player gets a tag that makes YouTube schedule no ads – so there is no waiting penalty either. Any ad data that still arrives is removed before the player reads it (`content-main.js`). |
+| **Signed in** | YouTube ignores that tag for signed-in accounts. So only the video request itself goes out without your account (no cookies, no sign-in headers). When you click to the next video, the extension fetches the ad-free video data in parallel and swaps it in before the player sees it – no reload, no pause. Comments, recommendations, likes, subscriptions and watch history still run on your account. Videos that need a sign-in (age-restricted, members-only, private) are loaded normally. |
+| **Anti-adblock dialog, hiccups** | The dialog is closed properly instead of just hidden (otherwise it blocks scrolling and the video). YouTube’s “Experiencing interruptions?” snackbar is hidden. A watchdog resumes pauses you didn’t make and re-requests a video that stalls mid-way. |
+| **Banners, feed ads, Shorts ads, overlays** | Hidden with CSS (`content.js`). As a safety net, an ad that still plays is skipped or muted and fast-forwarded, and the original volume and speed are restored afterwards. |
 
-### Immer aktuell, ohne Updates
+### Always up to date, no updates needed
 
-`background.js` lädt alle 6 Stunden die Filterlisten der uBlock-Origin-Community (inklusive Unterlisten und Quick-Fixes) und EasyList und übernimmt nur die YouTube-Regeln:
+Every 6 hours `background.js` downloads the filter lists maintained by the uBlock Origin community (including sub-lists and quick fixes) plus EasyList and keeps only the YouTube rules:
 
-- Werbe-Pfade in den Player-Daten (`json-prune`)
-- Ausblend-Regeln für die Seite
-- Zeitgeber-Regeln gegen Wartezeiten (`nano-stb`)
-- Kennungen für werbefreie Anfragen
+- ad paths in the player data (`json-prune`)
+- hiding rules for the page
+- timer rules against waiting penalties (`nano-stb`)
+- tags for ad-free requests
 
-Fällt eine Quelle aus, versucht die Erweiterung Spiegelserver. Ohne Internet bleiben die letzten Regeln aktiv, und eingebaute Standardregeln greifen immer. Aus den Listen werden nur Schlüssel übernommen, die nach Werbung benannt sind (z. B. `adSlots`, `isAd`), damit nichts anderes auf YouTube kaputtgeht.
+If a source is down, mirrors are tried. Offline, the last rules stay active, and built-in defaults always apply. Only keys named after ads (such as `adSlots`, `isAd`) are taken from the lists, so nothing else on YouTube breaks.
 
-## Installieren
+## Install
 
 ### Chrome, Edge, Brave
 
-1. `chrome://extensions` öffnen
-2. oben rechts den **Entwicklermodus** einschalten
-3. **„Entpackte Erweiterung laden“** und diesen Ordner wählen
-4. offene YouTube-Tabs neu laden
+1. Open `chrome://extensions`
+2. Turn on **Developer mode** (top right)
+3. Click **Load unpacked** and pick this folder
+4. Reload any open YouTube tabs
 
-![Chrome-Erweiterungsseite mit YT AdFree](docs/screenshot-erweiterung.png)
+<img src="docs/screenshot-extension.png" alt="Chrome extensions page with YT AdFree" width="720">
 
-Den Ordner danach nicht verschieben, Chrome lädt die Erweiterung direkt von dort.
+Don’t move the folder afterwards – Chrome loads the extension straight from there. After an update, click ↻ on the extension **and** reload your YouTube tabs; open tabs keep running the old code until then.
 
-### Firefox (ab 128)
+### Firefox (128+)
 
 ```bash
 node build-firefox.js
 ```
 
-Das erzeugt den Ordner `firefox/`. Danach `about:debugging#/runtime/this-firefox` → „Temporäres Add-on laden“ → `firefox/manifest.json`. Das gilt bis zum nächsten Neustart. Für eine dauerhafte Installation muss Mozilla das Add-on signieren (kostenlos, nicht öffentlich gelistet):
+This creates the `firefox/` folder. Then open `about:debugging#/runtime/this-firefox` → “Load Temporary Add-on” → `firefox/manifest.json`. That lasts until the next restart. For a permanent install Mozilla has to sign the add-on (free, not publicly listed):
 
 ```bash
 npx web-ext sign --source-dir firefox --channel=unlisted --api-key=… --api-secret=…
 ```
 
-Die Schlüssel gibt es nach Anmeldung auf addons.mozilla.org unter „Developer Hub → API-Schlüssel“.
+You get the keys on addons.mozilla.org under “Developer Hub → Manage API Keys”.
 
-## Projektaufbau
+## Diagnostics
+
+The extension keeps a local log of the last 400 events: request, YouTube’s answer, first frame, stalls, pauses (including which script paused), hints from YouTube. It never leaves your computer. To read it, open the extension’s “service worker” on `chrome://extensions` and run `(await chrome.storage.local.get('diag')).diag` in its console, or filter the YouTube tab’s console (level “Verbose”) for `YT AdFree`.
+
+## Project layout
 
 ```
-manifest.json        Chrome-Manifest (Firefox-Fassung per build-firefox.js)
-background.js        lädt und filtert die Regeln alle 6 Stunden
-content-main.js      läuft in der YouTube-Seite: Anfrage-Kennung, Datenfilter, Zeitgeber
-content.js           CSS-Ausblendung und Reserve-Überspringer
-icons/               Erweiterungs-Icons
-docs/                Logo, Diagramme, Screenshots
-tools/grafiken.js    erzeugt Logo und Diagramme neu
-tools/test/          Messläufe und Screenshots (Playwright)
+manifest.json        Chrome manifest (Firefox version via build-firefox.js)
+background.js        downloads and filters the rules every 6 hours
+content-main.js      runs inside the YouTube page: ad-free request, data filter, timers, watchdog, log
+content.js           CSS hiding, safety-net skipper, log storage
+icons/               extension icons
+docs/                banner, charts, screenshots, benchmark data
+tools/graphics.js    regenerates logo, banner and charts from docs/data/benchmark.json
+tools/test/          benchmark, screenshots, navigation checks (Playwright)
 ```
 
-## Selbst nachmessen
+## Measure it yourself
 
 ```bash
 cd tools/test
 npm install
-npm run startzeit
+npm run benchmark
+node ../graphics.js
 ```
 
-Die Skripte starten das installierte Chrome mit einem leeren Testprofil. Dein eigenes Profil bleibt unberührt. Weitere Läufe: `npm run navigation`, `npm run weiterklicken`, `npm run screenshots`. Grafiken neu erzeugen: `node tools/grafiken.js`.
+The scripts start your installed Chrome with an empty test profile; your own profile is not touched. `npm run screenshots` retakes the screenshots and the comparison image.
 
-## Diagnose
+## Limits
 
-Die Erweiterung merkt sich lokal die letzten 400 Ereignisse (Anfrage, YouTube-Antwort, erstes Bild, Hänger, Pausen, Hinweise von YouTube). Sie verlassen den Rechner nicht. Ansehen: in `chrome://extensions` bei YT AdFree „Service Worker“ öffnen und in der Konsole `(await chrome.storage.local.get('diag')).diag` eingeben, oder auf YouTube in der Konsole (Stufe „Ausführlich“) nach `YT AdFree` filtern.
+- The **rules** update themselves, the **code** of an unpacked extension does not. If YouTube changes something fundamental, the code has to be adapted.
+- Links with a start time (`&t=…`) start at the right spot, but only after a few seconds.
+- Fast-forwarding ads does not help on its own: YouTube’s servers then hold the video back for the length of the ad (measured). That is why YT AdFree relies on no ad being scheduled at all.
+- Whether YouTube always marks ads stitched into the stream as ads could not be verified; none showed up in the test runs.
 
-## Grenzen
-
-- Die **Regeln** aktualisieren sich selbst, der **Code** einer entpackt geladenen Erweiterung nicht. Baut YouTube grundlegend um, muss der Code angepasst werden.
-- Links mit Startzeit (`&t=…`) starten an der richtigen Stelle, aber erst nach einigen Sekunden.
-- Ob YouTube in den Stream eingebettete Werbung immer als Werbung markiert, ließ sich nicht prüfen. In den Testläufen kam keine vor.
-- Werbung nur schnell durchzuspulen hilft nicht: YouTubes Server hält das Video trotzdem so lange zurück, wie die Werbung gedauert hätte (gemessen 18.11.2026). Darum setzt die Erweiterung darauf, dass gar keine Werbung eingeplant wird.
-
-<sub>Logo entworfen in Claude Design. Die Filterregeln stammen von der [uBlock-Origin](https://github.com/uBlockOrigin/uAssets)-Community und [EasyList](https://easylist.to) und werden zur Laufzeit geladen, nicht mitgeliefert.</sub>
+<sub>Logo designed in Claude Design. The filter rules come from the [uBlock Origin](https://github.com/uBlockOrigin/uAssets) community and [EasyList](https://easylist.to); they are downloaded at runtime, not bundled.</sub>

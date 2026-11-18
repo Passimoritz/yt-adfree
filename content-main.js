@@ -1,5 +1,5 @@
-// Läuft im Seitenkontext (MAIN world) ab document_start.
-// Entfernt Werbedaten aus allen JSON-Antworten von YouTube, bevor der Player sie sieht.
+// Runs in the page context (MAIN world) from document_start.
+// Strips ad data from every YouTube JSON response before the player sees it.
 (() => {
   'use strict';
   if (window.__ytafMain) return;
@@ -17,17 +17,17 @@
     'reelWatchSequenceResponse.entries.[-].command.reelWatchEndpoint.adClientParams.isAd',
   ];
 
-  // Zeitgeber-Beschleuniger (wie uBlocks nano-stb): Fehlt die Werbung, hält YouTube den
-  // Videostart mit einem 17-s-Zeitgeber hin. Den verkürzen wir auf praktisch null.
+  // Timer booster (like uBlock's nano-stb): when the ad is missing, YouTube delays the
+  // video start with a 17 s timer. We shorten it to practically zero.
   const DEFAULT_TIMERS = [{ needle: '[native code]', delay: 17000, boost: 0.001 }];
-  // Anfrage-Kennungen, mit denen YouTube gar keine Werbung einplant (dann auch keine Strafwartezeit).
-  // 'oAEBogYBLg' im Test vom 18.11.2026 geprüft: keine Werbedaten, Video spielbar.
+  // Request params that make YouTube schedule no ads at all (and therefore no penalty wait).
+  // 'oAEBogYBLg' verified in a test on 2026-11-18: no ad data, video plays.
   const DEFAULT_PARAMS = ['oAEBogYBLg'];
   const SS_IDX = '__ytaf_pidx', SS_RETRY = '__ytaf_retry';
 
   const nativeParse = JSON.parse;
   const nativeStr = JSON.stringify;
-  // Diagnose: kurze Ereignisse an content.js (speichert die letzten 400 lokal in der Erweiterung)
+  // Diagnostics: short events sent to content.js (it keeps the last 400 locally in the extension)
   const t0 = Date.now();
   let diagReady = false; const diagQueue = [];
   const onReady = () => { if (diagReady) return; diagReady = true; for (const d of diagQueue.splice(0)) document.dispatchEvent(new CustomEvent('ytaf:diag', { detail: d })); };
@@ -60,7 +60,7 @@
       if (cfg && Array.isArray(cfg.prune)) extra = cfg.prune.filter((p) => typeof p === 'string');
       if (cfg && Array.isArray(cfg.timers)) extraTimers = cfg.timers.filter((t) => t && typeof t === 'object');
       if (cfg && Array.isArray(cfg.params)) params = [...new Set([...DEFAULT_PARAMS, ...cfg.params.filter((p) => typeof p === 'string' && /^[\w%-]{2,40}$/.test(p))])];
-    } catch { /* Storage gesperrt – Standardregeln reichen */ }
+    } catch { /* storage blocked – the default rules are enough */ }
     rules = [...new Set([...DEFAULT_PATHS, ...extra])]
       .map((p) => p.split('.'))
       .filter((s) => s.length && s[s.length - 1] !== '[]' && s[s.length - 1] !== '[-]');
@@ -77,7 +77,7 @@
   loadRules();
   window.addEventListener('ytaf:cfg', loadRules);
 
-  // ---------- Pfad-Löschen (Syntax wie uBlocks json-prune: a.b, [] = alle, [-] = Eintrag entfernen)
+  // ---------- Path pruning (syntax like uBlock's json-prune: a.b, [] = all, [-] = remove entry)
   const has = (o, segs, i) => {
     if (i === segs.length) return true;
     if (o === null || typeof o !== 'object') return false;
@@ -99,17 +99,17 @@
     else del(o[k], segs, i + 1);
   };
 
-  // Hinweis: Die Zeitangaben in adPlacements sind Fenster für Werbepausen, KEINE eingebetteten
-  // Spots (im Test geprüft) – darum wird hier nie anhand dieser Daten im Video gesprungen.
-  // In den Stream eingebettete Werbung behandelt content.js, sobald der Player sie markiert.
+  // Note: the time ranges in adPlacements are windows for ad breaks, NOT embedded
+  // spots (verified in testing) – so we never seek within the video based on this data.
+  // Ads embedded in the stream are handled by content.js as soon as the player marks them.
 
-  // ---------- Werbefreie Videoanfrage
-  // Jede Player-Anfrage bekommt eine Kennung, bei der YouTube keine Werbung einplant.
-  // Angemeldet ignoriert YouTube diese Kennung (Protokoll vom 18.11.2026: Werbedaten trotz Kennung,
-  // dann hält der Server das Video so lange zurück, wie die Werbung gedauert hätte). Darum geht bei
-  // Angemeldeten NUR die Player-Anfrage ohne Anmeldung raus (keine Cookies, keine Anmelde-Header).
-  // Kommentare, Empfehlungen, Likes und Verlauf laufen weiter über das Konto.
-  // Braucht ein Video die Anmeldung (Altersfreigabe, Mitglieder, privat), wird nur dieses normal geladen.
+  // ---------- Ad-free video request
+  // Every player request gets a param that makes YouTube schedule no ads.
+  // When signed in, YouTube ignores this param (log from 2026-11-18: ad data despite the param,
+  // then the server holds the video back for as long as the ad would have lasted). So for
+  // signed-in users ONLY the player request is sent signed out (no cookies, no auth headers).
+  // Comments, recommendations, likes and history still go through the account.
+  // If a video needs sign-in (age restriction, members only, private), only that one loads normally.
   const ss = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch {} return null; };
   const paramIdx = () => Number(ss(SS_IDX) || 0);
   const SS_AUTH = '__ytaf_auth';
@@ -119,18 +119,18 @@
   const loggedIn = () => { try { return !!window.ytcfg.get('LOGGED_IN'); } catch { return false; } };
   const isPlayerReq = (o) => o && typeof o === 'object' && typeof o.videoId === 'string' && o.context && o.context.client && o.playbackContext;
   let tweakedVideo = null;
-  let lastGetWatch = null;       // letzte get_watch-Videoanfrage (für den werbefreien Austausch)
-  const anonQueue = [];          // Player-Anfragen, die gleich ohne Anmeldung rausgehen
-  const anonVideos = new Set();  // Videos, deren Player-Antwort ohne Anmeldung kam
-  // req = die Videoanfrage, ctx = ihr Kontext (bei get_watch liegt er eine Ebene höher)
+  let lastGetWatch = null;       // last get_watch video request (for the ad-free swap)
+  const anonQueue = [];          // player requests about to be sent signed out
+  const anonVideos = new Set();  // videos whose player response was fetched signed out
+  // req = the video request, ctx = its context (for get_watch it sits one level up)
   function tweak(req, ctx, viaGetWatch) {
-    if (!ctx || !ctx.client || ctx.client.clientName !== 'WEB') return; // Einbettungen, TV, Musik unverändert lassen
+    if (!ctx || !ctx.client || ctx.client.clientName !== 'WEB') return; // leave embeds, TV and Music untouched
     if (needsAuth(req.videoId)) return;
     const p = params[paramIdx()];
     if (!p) return;
     if (viaGetWatch && loggedIn()) {
-      // get_watch läuft mit Konto (Kommentare, Empfehlungen). Die Kennung wirkt dort nicht und fällt nur auf –
-      // darum unverändert lassen; kommt Werbung, tauscht swapGetWatch() die Videodaten vor dem Player aus.
+      // get_watch runs with the account (comments, recommendations). The param has no effect there and only stands out –
+      // so leave it untouched; if ads come back, swapGetWatch() swaps the video data before the player sees it.
       try { lastGetWatch = { vid: req.videoId, ts: Date.now(), req: nativeParse(nativeStr(req)), ctx: nativeParse(nativeStr(ctx)) }; } catch {}
       diag('req', { vid: req.videoId, getWatch: true, untouched: true, loggedIn: true });
       return;
@@ -156,17 +156,17 @@
     tryIt(100);
   }
 
-  // Hauptvideo kam mit Werbedaten (erster Seitenaufruf oder Wechsel über get_watch mit Anmeldung)
-  // → einmal werbefrei nachladen; sonst wartet man die Länge der Werbung auf schwarzem Bild.
+  // The main video came with ad data (first page load, or a switch via get_watch while signed in)
+  // → reload it once ad-free; otherwise you sit through the ad's length on a black screen.
   function reloadIfAds(vid, tries = 0) {
     nativeSetTimeout(() => {
-      // Beim Weiterklicken kommt die Antwort teils vor der neuen Adresse – kurz darauf warten
+      // When clicking through, the response sometimes arrives before the new URL – wait for it briefly
       if (vid !== watchId()) { if (tries < 10) reloadIfAds(vid, tries + 1); return; }
       if (hasStart() || needsAuth(vid) || !params[paramIdx()]) return;
       const last = (ss(SS_RETRY) || '').split('|');
-      if (last[0] === vid && Date.now() - Number(last[1] || 0) < 120000) return; // höchstens einmal je Video
+      if (last[0] === vid && Date.now() - Number(last[1] || 0) < 120000) return; // at most once per video
       ss(SS_RETRY, vid + '|' + Date.now());
-      reloadVideo(vid, 'werbedaten');
+      reloadVideo(vid, 'ad-data');
     }, 400);
   }
 
@@ -186,13 +186,13 @@
         const vid = pr.videoDetails && pr.videoDetails.videoId;
         diag('resp', { vid, st, reason: pr.playabilityStatus.reason || null, ads: Object.keys(pr).filter((k) => /^ad|[a-z]Ads?$|^playerAds/.test(k)), tweaked: vid === tweakedVideo, anon: anonVideos.has(vid) });
         if (st !== 'OK' && vid && vid === tweakedVideo && !needsAuth(vid)) {
-          // ohne Anmeldung bzw. mit Kennung nicht abspielbar → dieses Video ganz normal laden
+          // not playable signed out or with the param → load this video normally
           addAuth(vid);
-          nativeSetTimeout(() => reloadVideo(vid, 'normal:' + st), 0);
+          nativeSetTimeout(() => reloadVideo(vid, 'needs-login:' + st), 0);
         } else if (st === 'OK' && vid && hasAds(pr)) reloadIfAds(vid);
       }
       for (const r of rules) del(obj, r, 0);
-    } catch { /* nie die Seite kaputt machen */ }
+    } catch { /* never break the page */ }
     return obj;
   }
 
@@ -237,8 +237,8 @@
     return nativeJson.call(this).then(prune);
   }, nativeJson);
 
-  // Angemeldet beim Weiterklicken: kommt get_watch mit Werbung, holen wir die Videodaten selbst ohne Konto
-  // und mit Kennung und setzen sie ein, BEVOR der Player sie sieht – kein Nachladen, kein kurzes Anhalten.
+  // Signed in and clicking through: if get_watch comes with ads, we fetch the video data ourselves without the account
+  // and with the param, and insert it BEFORE the player sees it – no reload, no brief stall.
   function setPlayerResp(obj, fresh) {
     if (Array.isArray(obj)) { for (const x of obj) if (x && x.playerResponse) { x.playerResponse = fresh; return true; } return false; }
     if (obj && obj.playerResponse) { obj.playerResponse = fresh; return true; }
@@ -257,7 +257,7 @@
       return r.ok ? await nativeJson.call(r) : null;
     } finally { clearTimeout(timer); }
   }
-  // get_watch-Antwort abfangen: enthält sie Werbung, die parallel geholten werbefreien Videodaten einsetzen
+  // Intercept the get_watch response: if it contains ads, insert the ad-free video data fetched in parallel
   async function swapGetWatch(resp, anonP, vidWanted) {
     const t = Date.now();
     try {
@@ -272,7 +272,7 @@
       if (!pr || !hasAds(pr) || !vid || vid !== vidWanted || needsAuth(vid)) return resp;
       const fresh = await anonP;
       const st = fresh && fresh.playabilityStatus && fresh.playabilityStatus.status;
-      if (st !== 'OK' || hasAds(fresh) || !setPlayerResp(obj, fresh)) { diag('swap-nein', { vid, st: st || null, ads: !!fresh && hasAds(fresh), ms: Date.now() - t }); return resp; }
+      if (st !== 'OK' || hasAds(fresh) || !setPlayerResp(obj, fresh)) { diag('swap-skipped', { vid, st: st || null, ads: !!fresh && hasAds(fresh), ms: Date.now() - t }); return resp; }
       anonVideos.add(vid); tweakedVideo = vid;
       const h = new Headers(resp.headers);
       h.delete('content-length'); h.delete('content-encoding');
@@ -280,11 +280,11 @@
       try { Object.defineProperty(out, 'url', { value: resp.url }); } catch {}
       diag('swap', { vid, ms: Date.now() - t });
       return out;
-    } catch (e) { diag('swap-fehler', { msg: String(e && e.message).slice(0, 80), ms: Date.now() - t }); }
+    } catch (e) { diag('swap-error', { msg: String(e && e.message).slice(0, 80), ms: Date.now() - t }); }
     return resp;
   }
 
-  // Player-Anfrage (nur sie) ohne Anmeldung senden, wenn tweak() das vorgemerkt hat
+  // Send the player request (and only that one) signed out when tweak() has queued it
   window.fetch = disguise(function fetch(input, init) {
     try {
       const url = typeof input === 'string' ? input : input && input.url;
@@ -306,13 +306,13 @@
           return nativeFetch.call(this, req);
         }
       }
-    } catch (e) { diag('anon-fehler', { msg: String(e && e.message).slice(0, 80) }); }
+    } catch (e) { diag('anon-error', { msg: String(e && e.message).slice(0, 80) }); }
     return nativeFetch.apply(this, arguments);
   }, nativeFetch);
 
-  // ytInitialPlayerResponse steht als Objekt-Literal im HTML (läuft nicht über JSON.parse)
-  // Hatte sie Werbung, lädt der Player das Video einmal per Anfrage mit Kennung nach –
-  // sonst hält YouTubes Server den Start so lange zurück, wie die Werbung gedauert hätte.
+  // ytInitialPlayerResponse is an object literal in the HTML (it does not go through JSON.parse)
+  // If it had ads, the player reloads the video once via a request with the param –
+  // otherwise YouTube's server holds back the start for as long as the ad would have lasted.
   {
     const onInitial = (v) => {
       try {
@@ -331,9 +331,9 @@
     } catch {}
   }
 
-  // ---------- Anti-Adblock-Dialog richtig schließen
-  // Nur unsichtbar machen reicht nicht: der Dialog sperrt weiter das Scrollen (Polymer-Scroll-Sperre)
-  // und hält das Video an. Darum über seine eigene close()-Methode schließen und entfernen.
+  // ---------- Close the anti-adblock dialog properly
+  // Just hiding it is not enough: the dialog keeps scrolling locked (Polymer scroll lock)
+  // and keeps the video paused. So close it via its own close() method and remove it.
   function closeEnforcement() {
     const msgs = document.querySelectorAll('ytd-enforcement-message-view-model');
     if (!msgs.length) return;
@@ -351,10 +351,10 @@
   }
   setInterval(closeEnforcement, 300);
 
-  // ---------- Wächter: Video hält mitten drin an
-  // 1) Pause, die nicht von dir kommt (kein Klick/Taste/Medientaste kurz davor) → weiterspielen.
-  // 2) Video hängt lange beim Laden an derselben Stelle (YouTube hält den Stream zurück)
-  //    → an genau dieser Stelle neu anfordern, dann mit werbefreier Kennung.
+  // ---------- Watchdog: video stops mid-playback
+  // 1) A pause that didn't come from you (no click/key/media key just before) → resume playback.
+  // 2) The video is stuck loading at the same position for a long time (YouTube holds back the stream)
+  //    → re-request at exactly that position, this time with the ad-free param.
   const dbg = (ev, data) => diag(ev, data);
   let lastGesture = 0;
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, () => { lastGesture = Date.now(); }, true);
@@ -377,18 +377,18 @@
     watched.add(v);
     v.addEventListener('pause', () => {
       const p = player();
-      diag('pause', { t: +v.currentTime.toFixed(1), user: Date.now() - lastGesture < 1500, ad: inAd(p), hidden: document.hidden, rs: v.readyState, by: lastPause && Date.now() - lastPause.ts < 300 ? lastPause.by : 'kein pause()-Aufruf' });
+      diag('pause', { t: +v.currentTime.toFixed(1), user: Date.now() - lastGesture < 1500, ad: inAd(p), hidden: document.hidden, rs: v.readyState, by: lastPause && Date.now() - lastPause.ts < 300 ? lastPause.by : 'no pause() call' });
       if (v.ended || inAd(p) || document.hidden || Date.now() - lastGesture < 1500) return;
-      if (document.querySelector('tp-yt-paper-dialog[opened]:not(:has(ytd-enforcement-message-view-model))')) return; // z. B. „Video pausiert. Weiter ansehen?“
+      if (document.querySelector('tp-yt-paper-dialog[opened]:not(:has(ytd-enforcement-message-view-model))')) return; // e.g. “Video paused. Continue watching?”
       const now = Date.now();
       while (resumes.length && now - resumes[0] > 60000) resumes.shift();
-      if (resumes.length >= 3) return; // nie gegen YouTube anspielen
+      if (resumes.length >= 3) return; // never fight YouTube
       resumes.push(now);
       nativeSetTimeout(() => { if (v.paused && !v.ended && !inAd(player()) && Date.now() - lastGesture > 1500) { dbg('resume', { t: +v.currentTime.toFixed(1) }); v.play().catch(() => {}); } }, 250);
     });
   }
 
-  // YouTube-Hinweis „Kommt es zu Unterbrechungen?“ finden: Text + Elementpfad (für gezieltes Ausblenden)
+  // Find YouTube's “Experiencing interruptions?” hint: text + element path (for targeted hiding)
   const HINT_RE = /Unterbrechung|interruption/i;
   let hintCheck = 0;
   function findHint() {
@@ -411,12 +411,12 @@
     for (const sb of document.querySelectorAll('snackbar-container snackbar-view-model, tp-yt-paper-toast')) {
       if (sb.style.display !== 'none' && HINT_RE.test(sb.textContent || '')) {
         sb.style.setProperty('display', 'none', 'important');
-        diag('yt-hint-weg', { text: (sb.textContent || '').trim().slice(0, 60) });
+        diag('yt-hint-hidden', { text: (sb.textContent || '').trim().slice(0, 60) });
       }
     }
   }, 300);
 
-  // Wer hält das Video an? Aufrufer von pause() merken (zeigt YouTube-Code oder andere Erweiterung)
+  // Who pauses the video? Record the caller of pause() (reveals YouTube code or another extension)
   let lastPause = null;
   try {
     const nativePause = HTMLMediaElement.prototype.pause;
@@ -431,7 +431,7 @@
     }, nativePause);
   } catch {}
 
-  // Ablauf je Video protokollieren: erstes Bild, Hänger, Pausen, YouTube-Hinweis „Unterbrechungen“
+  // Log the sequence per video: first frame, stalls, pauses, YouTube's “interruptions” hint
   let cur = null, toastSeen = false;
   setInterval(() => {
     const p = player(), v = p && p.querySelector('video');
@@ -448,7 +448,7 @@
     const loading = !v.paused && !v.ended && v.readyState < 3 && !inAd(p) && /\/watch/.test(location.pathname);
     if (!loading || Math.abs(v.currentTime - stallAt) > 0.5) { stallSince = loading ? Date.now() : 0; stallAt = v.currentTime; return; }
     if (stallSince && Date.now() - stallSince > 3000 && cur && cur.stallLogged !== Math.round(stallAt)) { cur.stallLogged = Math.round(stallAt); diag('stall', { vid: id, t: +v.currentTime.toFixed(1), rs: v.readyState }); }
-    // Neu anfordern nur mitten im Video – beim Start würde das den Ladevorgang abbrechen
+    // Re-request only mid-video – at the start it would abort loading
     if (v.currentTime > 1 && stallSince && Date.now() - stallSince > 6000 && Date.now() - lastReload > 30000 && typeof p.loadVideoById === 'function' && id) {
       lastReload = Date.now(); stallSince = 0;
       dbg('stall-reload', { t: +v.currentTime.toFixed(1), rs: v.readyState });

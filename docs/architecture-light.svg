@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="960" height="480" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" role="img" aria-label="How YT AdFree works">
+  <rect x="0.5" y="0.5" width="959" height="479" rx="20" fill="#fcfcfb" stroke="#e6e5df"/>
+
+  <defs><marker id="ah-light" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#7a7873"/></marker></defs>
+  <text x="40" y="56" font-size="22" font-weight="600" fill="#0b0b0b">How a video gets to you without ads</text>
+  <text x="40" y="82" font-size="14" fill="#52514e">Everything runs inside your browser – no servers of its own, no tracking</text>
+  
+  <g transform="translate(40 124)">
+    <rect width="200" height="112" rx="14" fill="#f3f4f6" stroke="#e6e5df" stroke-width="1"/>
+    <text x="18" y="30" font-size="15" font-weight="600" fill="#0b0b0b">YouTube player</text>
+    <text x="18" y="54" font-size="13" fill="#52514e">asks for a video</text><text x="18" y="74" font-size="13" fill="#52514e">(link, click, autoplay)</text>
+  </g>
+  
+  <g transform="translate(296 112)">
+    <rect width="316" height="136" rx="14" fill="#d7f2ec" stroke="#0E7C6B" stroke-width="1.5"/>
+    <text x="18" y="30" font-size="15" font-weight="600" fill="#0b0b0b">content-main.js</text>
+    <text x="18" y="54" font-size="13" fill="#52514e">adds the ad-free tag to the request</text><text x="18" y="74" font-size="13" fill="#52514e">signed in: sends only this request</text><text x="18" y="94" font-size="13" fill="#52514e">without your account</text><text x="18" y="114" font-size="13" fill="#52514e">strips ad data that slips through</text>
+  </g>
+  
+  <g transform="translate(668 124)">
+    <rect width="252" height="112" rx="14" fill="#f3f4f6" stroke="#e6e5df" stroke-width="1"/>
+    <text x="18" y="30" font-size="15" font-weight="600" fill="#0b0b0b">YouTube servers</text>
+    <text x="18" y="54" font-size="13" fill="#52514e">plan no ad for this video</text><text x="18" y="74" font-size="13" fill="#52514e">→ no waiting penalty</text>
+  </g>
+  <line x1="240" y1="180" x2="292" y2="180" stroke="#7a7873" stroke-width="1.8" marker-end="url(#ah-light)"/><text x="266" y="172" text-anchor="middle" font-size="12" fill="#7a7873">request</text>
+  <line x1="612" y1="180" x2="664" y2="180" stroke="#7a7873" stroke-width="1.8" marker-end="url(#ah-light)"/><text x="638" y="172" text-anchor="middle" font-size="12" fill="#7a7873">tagged</text>
+  <path d="M794 236 C794 298 560 304 470 252" fill="none" stroke="#7a7873" stroke-width="1.8" marker-end="url(#ah-light)"/>
+  <text x="660" y="304" text-anchor="middle" font-size="12" fill="#7a7873">clean answer, before the player reads it</text>
+  
+  <g transform="translate(40 330)">
+    <rect width="272" height="120" rx="14" fill="#f3f4f6" stroke="#e6e5df" stroke-width="1"/>
+    <text x="18" y="30" font-size="15" font-weight="600" fill="#0b0b0b">background.js</text>
+    <text x="18" y="54" font-size="13" fill="#52514e">every 6 h: uBlock Origin lists</text><text x="18" y="74" font-size="13" fill="#52514e">and EasyList, keeps only the</text><text x="18" y="94" font-size="13" fill="#52514e">YouTube rules</text>
+  </g>
+  
+  <g transform="translate(344 330)">
+    <rect width="272" height="120" rx="14" fill="#f3f4f6" stroke="#e6e5df" stroke-width="1"/>
+    <text x="18" y="30" font-size="15" font-weight="600" fill="#0b0b0b">content.js</text>
+    <text x="18" y="54" font-size="13" fill="#52514e">hides ad slots and banners</text><text x="18" y="74" font-size="13" fill="#52514e">safety net: skips, mutes and</text><text x="18" y="94" font-size="13" fill="#52514e">fast-forwards any ad</text>
+  </g>
+  
+  <g transform="translate(648 330)">
+    <rect width="272" height="120" rx="14" fill="#f3f4f6" stroke="#e6e5df" stroke-width="1"/>
+    <text x="18" y="30" font-size="15" font-weight="600" fill="#0b0b0b">Watchdog + diagnostics</text>
+    <text x="18" y="54" font-size="13" fill="#52514e">closes the anti-adblock dialog</text><text x="18" y="74" font-size="13" fill="#52514e">resumes pauses you didn’t make</text><text x="18" y="94" font-size="13" fill="#52514e">local log of the last 400 events</text>
+  </g>
+  <line x1="312" y1="390" x2="340" y2="390" stroke="#7a7873" stroke-width="1.8" marker-end="url(#ah-light)"/>
+</svg>

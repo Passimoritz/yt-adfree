@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" width="960" height="300" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" role="img" aria-label="YT AdFree: lean YouTube ad blocker for Chrome and Firefox">
+  <rect x="0.5" y="0.5" width="959" height="299" rx="20" fill="#16171d" stroke="#2a2b33"/>
+
+  <defs><radialGradient id="glow-dark" cx="0.1" cy="0.05" r="0.9"><stop offset="0" stop-color="#22C3A6" stop-opacity="0.18"/><stop offset="1" stop-color="#22C3A6" stop-opacity="0"/></radialGradient></defs>
+  <rect x="1" y="1" width="958" height="298" rx="20" fill="url(#glow-dark)"/>
+  <g transform="translate(32 38) scale(0.72)">
+  <path d="M64 8 L108 24 V60 C108 88 89 108 64 120 C39 108 20 88 20 60 V24 Z" fill="#22C3A6"/>
+  <path d="M64 18 L99 31 V60 C99 82 84 98 64 109 C44 98 29 82 29 60 V31 Z" fill="#15172E"/>
+  <path d="M50 44 L80 64 L50 84 Z" fill="#22C3A6" stroke="#22C3A6" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="84" y="44" width="8" height="40" rx="3" fill="#22C3A6"/></g>
+  <text x="138" y="100" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="52" font-weight="700" letter-spacing="-1" fill="#F4F5F7">YT Ad<tspan fill="#22C3A6">Free</tspan></text>
+  <text x="40" y="164" font-size="20" fill="#f0efec">Lean YouTube ad blocker for Chrome and Firefox.</text>
+  <text x="40" y="192" font-size="15" fill="#c3c2b7">No ads before, during or after videos – and no waiting either.</text>
+  <g transform="translate(40 218)"><rect width="86.8" height="30" rx="15" fill="#1f2028" stroke="#2a2b33"/><text x="43.4" y="20" text-anchor="middle" font-size="13" fill="#c3c2b7">No popups</text></g><g transform="translate(136.8 218)"><rect width="187.6" height="30" rx="15" fill="#1f2028" stroke="#2a2b33"/><text x="93.8" y="20" text-anchor="middle" font-size="13" fill="#c3c2b7">Rules update themselves</text></g><g transform="translate(334.4 218)"><rect width="101.2" height="30" rx="15" fill="#1f2028" stroke="#2a2b33"/><text x="50.6" y="20" text-anchor="middle" font-size="13" fill="#c3c2b7">Manifest V3</text></g>
+  <g transform="translate(560 46)">
+    <rect width="360" height="64" rx="14" fill="#1f2028"/>
+    <text x="120" y="43" text-anchor="end" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="30" font-weight="700" fill="#22C3A6">0</text>
+    <text x="138" y="40" font-size="14" fill="#c3c2b7">ads in 20 test loads</text>
+  </g><g transform="translate(560 122)">
+    <rect width="360" height="64" rx="14" fill="#1f2028"/>
+    <text x="120" y="43" text-anchor="end" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="30" font-weight="700" fill="#22C3A6">0.6 s</text>
+    <text x="138" y="40" font-size="14" fill="#c3c2b7">median start of the next video</text>
+  </g><g transform="translate(560 198)">
+    <rect width="360" height="64" rx="14" fill="#1f2028"/>
+    <text x="120" y="43" text-anchor="end" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="30" font-weight="700" fill="#22C3A6">7/10</text>
+    <text x="138" y="40" font-size="14" fill="#c3c2b7">loads with ads without it</text>
+  </g>
+</svg>

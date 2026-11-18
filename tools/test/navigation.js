@@ -1,8 +1,8 @@
-// Prüft: Weiterklicken (SPA), Startzeit-Link, langes Video – Startzeit, Werbung, Position.
+// Checks: clicking through (SPA), start-time link, long video – startup time, ads, position.
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path'), os = require('os');
 const EXT = process.env.EXT || require('path').join(__dirname, '..', '..');
-const WITH = process.argv[2] !== 'ohne';
+const WITH = process.argv[2] !== 'without';
 (async () => {
   const ctx = await chromium.launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), 'ytaf-')), {
     channel: 'chrome', headless: true, ignoreDefaultArgs: ['--disable-extensions'], locale: 'de-DE',
@@ -25,24 +25,24 @@ const WITH = process.argv[2] !== 'ohne';
       if (s) { last = s; if (s.ad) ad = true; if (start === null && !s.ad && s.t > 0.3) start = ((Date.now() - t0) / 1000).toFixed(1); }
       await page.waitForTimeout(250);
     }
-    console.log(`${label.padEnd(26)} Start ${start ?? '–'}s | Werbung ${ad ? 'JA' : 'nein'} | Video ${last?.id} bei ${last?.t?.toFixed(1)}/${last?.d?.toFixed(0)}s | Fehler ${last?.err} | dbg ${last?.dbg}
+    console.log(`${label.padEnd(26)} Start ${start ?? '–'}s | Ads ${ad ? 'YES' : 'no'} | Video ${last?.id} at ${last?.t?.toFixed(1)}/${last?.d?.toFixed(0)}s | Error ${last?.err} | dbg ${last?.dbg}
       ${trail.join(' ')}`);
   }
 
   await page.goto('https://www.youtube.com/watch?v=kJQP7kiw5Fk', { waitUntil: 'domcontentloaded' });
-  await watch('Direktaufruf');
+  await watch('Direct load');
   for (let i = 1; i <= 3; i++) {
     const link = page.locator('#secondary a[href^="/watch?v="]:visible').first();
     const href = await link.getAttribute('href').catch(() => null);
     await link.click().catch(() => {});
-    await watch(`Weiterklicken ${i} (${(href || '').slice(9, 20)})`);
+    await watch(`Click-through ${i} (${(href || '').slice(9, 20)})`);
   }
   await page.goto('https://www.youtube.com/watch?v=JGwWNGJdvx8&t=60s', { waitUntil: 'domcontentloaded' });
-  await watch('Startzeit &t=60s');
+  await watch('Start time &t=60s');
   await page.goto('https://www.youtube.com/watch?v=0e3GPea1Tyg', { waitUntil: 'domcontentloaded' });
-  await watch('Langes Video (Midrolls)');
+  await watch('Long video (midrolls)');
   await page.evaluate(() => { const v = document.querySelector('#movie_player video'); v.currentTime = 178; });
-  await watch('  … nach Sprung zu 2:58', 15);
-  if (errs.length) console.log('Seitenfehler:', [...new Set(errs)].slice(0, 5));
+  await watch('  … after seeking to 2:58', 15);
+  if (errs.length) console.log('Page errors:', [...new Set(errs)].slice(0, 5));
   await ctx.close();
 })().catch((e) => { console.error(e.message); process.exit(1); });

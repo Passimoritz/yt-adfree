@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" width="520" height="128" role="img" aria-label="YT AdFree">
-  <g transform="translate(0 0)">
+  
   <path d="M64 8 L108 24 V60 C108 88 89 108 64 120 C39 108 20 88 20 60 V24 Z" fill="#22C3A6"/>
   <path d="M64 18 L99 31 V60 C99 82 84 98 64 109 C44 98 29 82 29 60 V31 Z" fill="#15172E"/>
   <path d="M50 44 L80 64 L50 84 Z" fill="#22C3A6" stroke="#22C3A6" stroke-width="4" stroke-linejoin="round"/>
-  <rect x="84" y="44" width="8" height="40" rx="3" fill="#22C3A6"/></g>
+  <rect x="84" y="44" width="8" height="40" rx="3" fill="#22C3A6"/>
   <text x="140" y="86" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="64" font-weight="700" letter-spacing="-1" fill="#F4F5F7">YT Ad<tspan fill="#22C3A6">Free</tspan></text>
 </svg>

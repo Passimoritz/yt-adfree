@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 252" width="960" height="252" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" role="img" aria-label="Loads with an ad: without extension 7 of 10, with YT AdFree 0 of 20">
+  <rect x="0.5" y="0.5" width="959" height="251" rx="20" fill="#fcfcfb" stroke="#e6e5df"/>
+  <text x="40" y="56" font-size="22" font-weight="600" fill="#0b0b0b">How often an ad played</text>
+  <text x="40" y="82" font-size="14" fill="#52514e">5 video links + 5 clicks to the next video per setup · 2026-11-18</text>
+  <g transform="translate(40 112)">
+    <rect width="280" height="112" rx="14" fill="#f3f4f6"/>
+    <text x="22" y="32" font-size="14" fill="#52514e">Without extension</text>
+    <text x="22" y="76" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="40" font-weight="700" fill="#0b0b0b">7</text>
+    <text x="56" y="74" font-size="14" fill="#52514e">of 10 loads</text>
+    <rect x="22" y="90" width="236" height="8" rx="4" fill="#e9e8e2"/>
+    <rect x="22" y="90" width="165.2" height="8" rx="4" fill="#eb6834"/>
+  </g>
+  <g transform="translate(340 112)">
+    <rect width="280" height="112" rx="14" fill="#f3f4f6"/>
+    <text x="22" y="32" font-size="14" fill="#52514e">YT AdFree · signed out</text>
+    <text x="22" y="76" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="40" font-weight="700" fill="#0b0b0b">0</text>
+    <text x="56" y="74" font-size="14" fill="#52514e">of 10 loads</text>
+    <rect x="22" y="90" width="236" height="8" rx="4" fill="#e9e8e2"/>
+    
+  </g>
+  <g transform="translate(640 112)">
+    <rect width="280" height="112" rx="14" fill="#f3f4f6"/>
+    <text x="22" y="32" font-size="14" fill="#52514e">YT AdFree · signed in</text>
+    <text x="22" y="76" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="40" font-weight="700" fill="#0b0b0b">0</text>
+    <text x="56" y="74" font-size="14" fill="#52514e">of 10 loads</text>
+    <rect x="22" y="90" width="236" height="8" rx="4" fill="#e9e8e2"/>
+    
+  </g>
+</svg>

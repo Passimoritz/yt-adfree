@@ -1,9 +1,9 @@
-// Hält die YouTube-Regeln automatisch aktuell: lädt alle 6 Stunden die von der
-// uBlock-Origin-Community gepflegten Filterlisten und zieht nur die YouTube-Regeln heraus.
+// Keeps the YouTube rules up to date automatically: every 6 hours it loads the filter lists
+// maintained by the uBlock Origin community and extracts only the YouTube rules.
 'use strict';
 
 const LISTS = [
-  'https://ublockorigin.github.io/uAssets/filters/filters.txt', // inkl. !#include filters-20xx.txt
+  'https://ublockorigin.github.io/uAssets/filters/filters.txt', // incl. !#include filters-20xx.txt
   'https://ublockorigin.github.io/uAssets/filters/quick-fixes.txt',
   'https://easylist.to/easylist/easylist.txt',
 ];
@@ -16,7 +16,7 @@ const YT_DOMAINS = new Set([
   'youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'tv.youtube.com',
   'youtube.*', 'youtubekids.com', 'www.youtubekids.com', 'youtube-nocookie.com', 'www.youtube-nocookie.com',
 ]);
-// Nur Werbe-Schlüssel entfernen, nie etwas anderes (Schutz vor Fehlgriffen)
+// Only remove ad keys, never anything else (guards against false hits)
 const AD_LEAF = /^ads?(?:[A-Z_]|$)|Ads?(?:[A-Z]|$)|nforcement/;
 const PRUNE_FN = /^(?:trusted-)?json-prune(?:-fetch-response|-xhr-response)?(?:\.js)?$/;
 const TIMER_FN = /^(?:nano-stb|nano-setTimeout-booster)(?:\.js)?$/;
@@ -25,7 +25,7 @@ const PROCEDURAL = /:(?:has-text|upward|remove|remove-attr|remove-class|style|xp
 const api = globalThis.browser ?? globalThis.chrome;
 
 function forYouTube(domainPart) {
-  if (!domainPart) return false; // generische Regeln weglassen – zu breit
+  if (!domainPart) return false; // skip generic rules – too broad
   const ds = domainPart.split(',').map((d) => d.trim());
   if (ds.some((d) => d.startsWith('~') && YT_DOMAINS.has(d.slice(1)))) return false;
   return ds.some((d) => YT_DOMAINS.has(d));
@@ -33,7 +33,7 @@ function forYouTube(domainPart) {
 
 function parseList(text) {
   const prune = new Set(), selectors = new Set(), exceptions = new Set(), timers = new Map(), params = new Set();
-  const skip = []; // !#if-Stapel
+  const skip = []; // !#if stack
   for (let line of text.split(/\r?\n/)) {
     line = line.trim();
     if (line.startsWith('!#if')) { skip.push(/^!#if\s+(false|!true)\b/.test(line)); continue; }
@@ -49,21 +49,21 @@ function parseList(text) {
     if (body.startsWith('+js(')) {
       const inner = body.slice(4, body.lastIndexOf(')'));
       const args = inner.split(/(?<!\\),\s*/);
-      // Kennungen für werbefreie Videoanfragen (uBlock: trusted-edit-inbound-object auf JSON.stringify)
+      // Params for ad-free video requests (uBlock: trusted-edit-inbound-object on JSON.stringify)
       if (args[0].trim() === 'trusted-edit-inbound-object' && /attestationRequest/.test(inner)) {
         const pm = inner.match(/\+=\{"params":"([\w%-]{2,40})"\}/);
         if (pm) params.add(pm[1]);
         continue;
       }
       if (TIMER_FN.test(args[0].trim())) {
-        // nano-stb, needle, delay, boost – nur echte Verkürzungen übernehmen
+        // nano-stb, needle, delay, boost – only accept actual speed-ups
         const delay = (args[2] || '1000').trim(), boost = Number((args[3] || '0.05').trim());
         if ((delay === '*' || Number(delay) > 0) && boost > 0 && boost < 1) timers.set((args[1] || '').trim() + '|' + delay, { needle: (args[1] || '').trim(), delay, boost });
         continue;
       }
       if (!PRUNE_FN.test(args[0].trim()) || !args[1]) continue;
       for (const p of args[1].trim().split(/\s+/)) {
-        if (!/^[\w$.[\]-]+$/.test(p) || !/[a-z]/i.test(p)) continue; // "important" etc. sind keine Pfade
+        if (!/^[\w$.[\]-]+$/.test(p) || !/[a-z]/i.test(p)) continue; // "important" etc. are not paths
         const leaf = p.split('.').filter((s) => s !== '[]' && s !== '[-]').pop();
         if (leaf && AD_LEAF.test(leaf)) prune.add(p);
       }
@@ -83,7 +83,7 @@ async function fetchText(url) {
       if (r.ok) return await r.text();
     } catch {}
   }
-  throw new Error('nicht erreichbar: ' + url);
+  throw new Error('unreachable: ' + url);
 }
 
 async function fetchWithIncludes(url, depth = 0) {
@@ -108,7 +108,7 @@ async function update() {
     p.timers.forEach((v, k) => timers.set(k, v));
     p.params.forEach((v) => params.add(v));
   }
-  if (!ok) return; // offline: alte Regeln behalten
+  if (!ok) return; // offline: keep the old rules
   for (const e of all.exceptions) all.selectors.delete(e);
   await api.storage.local.set({
     cfg: {
@@ -131,7 +131,7 @@ async function updateIfStale() {
 if (api?.runtime) {
   api.runtime.onInstalled.addListener(() => { update().catch(() => {}); });
   api.runtime.onStartup.addListener(() => { updateIfStale(); });
-  // Nur anlegen, wenn er fehlt – sonst würde jeder Neustart des Workers den Zeitplan zurücksetzen
+  // Only create it if it is missing – otherwise every worker restart would reset the schedule
   api.alarms.get('ytaf-update').then((a) => { if (!a) api.alarms.create('ytaf-update', { periodInMinutes: PERIOD_MIN }); });
   api.alarms.onAlarm.addListener((a) => { if (a.name === 'ytaf-update') update().catch(() => {}); });
 }

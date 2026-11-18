@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "YT AdFree",
   "version": "1.2.2",
-  "description": "Blockiert YouTube-Werbung vor, in und nach Videos. Regeln aktualisieren sich automatisch.",
+  "description": "Blocks YouTube ads before, during and after videos. Rules update themselves.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
