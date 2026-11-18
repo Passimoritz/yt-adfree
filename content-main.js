@@ -119,6 +119,7 @@
   const loggedIn = () => { try { return !!window.ytcfg.get('LOGGED_IN'); } catch { return false; } };
   const isPlayerReq = (o) => o && typeof o === 'object' && typeof o.videoId === 'string' && o.context && o.context.client && o.playbackContext;
   let tweakedVideo = null;
+  let lastGetWatch = null;       // letzte get_watch-Videoanfrage (für den werbefreien Austausch)
   const anonQueue = [];          // Player-Anfragen, die gleich ohne Anmeldung rausgehen
   const anonVideos = new Set();  // Videos, deren Player-Antwort ohne Anmeldung kam
   // req = die Videoanfrage, ctx = ihr Kontext (bei get_watch liegt er eine Ebene höher)
@@ -127,7 +128,14 @@
     if (needsAuth(req.videoId)) return;
     const p = params[paramIdx()];
     if (!p) return;
-    const anon = !viaGetWatch && loggedIn(); // get_watch enthält auch Kommentare/Empfehlungen – dort nie abmelden
+    if (viaGetWatch && loggedIn()) {
+      // get_watch läuft mit Konto (Kommentare, Empfehlungen). Die Kennung wirkt dort nicht und fällt nur auf –
+      // darum unverändert lassen; kommt Werbung, tauscht swapGetWatch() die Videodaten vor dem Player aus.
+      try { lastGetWatch = { vid: req.videoId, ts: Date.now(), req: nativeParse(nativeStr(req)), ctx: nativeParse(nativeStr(ctx)) }; } catch {}
+      diag('req', { vid: req.videoId, getWatch: true, untouched: true, loggedIn: true });
+      return;
+    }
+    const anon = !viaGetWatch && loggedIn();
     diag('req', { vid: req.videoId, ver: ctx.client.clientVersion, had: req.params || null, set: p, loggedIn: loggedIn(), anon, getWatch: !!viaGetWatch });
     req.params = p;
     tweakedVideo = req.videoId;
@@ -223,16 +231,68 @@
     return nativeSetTimeout.call(this, fn, delay, ...args);
   }, nativeSetTimeout);
 
+  const nativeFetch = window.fetch;
   const nativeJson = Response.prototype.json;
   Response.prototype.json = disguise(function json() {
     return nativeJson.call(this).then(prune);
   }, nativeJson);
 
+  // Angemeldet beim Weiterklicken: kommt get_watch mit Werbung, holen wir die Videodaten selbst ohne Konto
+  // und mit Kennung und setzen sie ein, BEVOR der Player sie sieht – kein Nachladen, kein kurzes Anhalten.
+  function setPlayerResp(obj, fresh) {
+    if (Array.isArray(obj)) { for (const x of obj) if (x && x.playerResponse) { x.playerResponse = fresh; return true; } return false; }
+    if (obj && obj.playerResponse) { obj.playerResponse = fresh; return true; }
+    return false;
+  }
+  async function anonPlayer(g) {
+    const p = params[paramIdx()];
+    if (!p) return null;
+    const body = { ...g.req, context: g.ctx, params: p };
+    const headers = { 'content-type': 'application/json', 'x-youtube-client-name': '1', 'x-youtube-client-version': String(g.ctx.client.clientVersion || '') };
+    if (g.ctx.client.visitorData) headers['x-goog-visitor-id'] = g.ctx.client.visitorData;
+    const ac = new AbortController();
+    const timer = nativeSetTimeout(() => ac.abort(), 2500);
+    try {
+      const r = await nativeFetch.call(window, '/youtubei/v1/player?prettyPrint=false', { method: 'POST', credentials: 'omit', headers, body: nativeStr(body), signal: ac.signal });
+      return r.ok ? await nativeJson.call(r) : null;
+    } finally { clearTimeout(timer); }
+  }
+  // get_watch-Antwort abfangen: enthält sie Werbung, die parallel geholten werbefreien Videodaten einsetzen
+  async function swapGetWatch(resp, anonP, vidWanted) {
+    const t = Date.now();
+    try {
+      if (!resp.ok) return resp;
+      let text = await resp.clone().text();
+      let prefix = '';
+      const m = /^\)\]\}'\s*/.exec(text);
+      if (m) { prefix = m[0]; text = text.slice(prefix.length); }
+      const obj = nativeParse(text);
+      const pr = playerResp(obj);
+      const vid = pr && pr.videoDetails && pr.videoDetails.videoId;
+      if (!pr || !hasAds(pr) || !vid || vid !== vidWanted || needsAuth(vid)) return resp;
+      const fresh = await anonP;
+      const st = fresh && fresh.playabilityStatus && fresh.playabilityStatus.status;
+      if (st !== 'OK' || hasAds(fresh) || !setPlayerResp(obj, fresh)) { diag('swap-nein', { vid, st: st || null, ads: !!fresh && hasAds(fresh), ms: Date.now() - t }); return resp; }
+      anonVideos.add(vid); tweakedVideo = vid;
+      const h = new Headers(resp.headers);
+      h.delete('content-length'); h.delete('content-encoding');
+      const out = new Response(prefix + nativeStr(obj), { status: resp.status, statusText: resp.statusText, headers: h });
+      try { Object.defineProperty(out, 'url', { value: resp.url }); } catch {}
+      diag('swap', { vid, ms: Date.now() - t });
+      return out;
+    } catch (e) { diag('swap-fehler', { msg: String(e && e.message).slice(0, 80), ms: Date.now() - t }); }
+    return resp;
+  }
+
   // Player-Anfrage (nur sie) ohne Anmeldung senden, wenn tweak() das vorgemerkt hat
-  const nativeFetch = window.fetch;
   window.fetch = disguise(function fetch(input, init) {
     try {
       const url = typeof input === 'string' ? input : input && input.url;
+      if (typeof url === 'string' && /\/youtubei\/v1\/get_watch/.test(url) && lastGetWatch && Date.now() - lastGetWatch.ts < 3000 && loggedIn()) {
+        const g = lastGetWatch; lastGetWatch = null;
+        const anonP = anonPlayer(g).catch(() => null);
+        return nativeFetch.apply(this, arguments).then((resp) => swapGetWatch(resp, anonP, g.vid));
+      }
       if (anonQueue.length && typeof url === 'string' && /\/youtubei\/v1\/player(?:\?|$)/.test(url)) {
         while (anonQueue.length && Date.now() - anonQueue[0].ts > 3000) anonQueue.shift();
         const job = anonQueue.shift();
@@ -346,6 +406,15 @@
     const box = n.parentElement.getBoundingClientRect();
     return { text: n.nodeValue.trim().slice(0, 100), path: chain.join(' < '), visible: box.width > 0 && box.height > 0 };
   }
+
+  setInterval(() => {
+    for (const sb of document.querySelectorAll('snackbar-container snackbar-view-model, tp-yt-paper-toast')) {
+      if (sb.style.display !== 'none' && HINT_RE.test(sb.textContent || '')) {
+        sb.style.setProperty('display', 'none', 'important');
+        diag('yt-hint-weg', { text: (sb.textContent || '').trim().slice(0, 60) });
+      }
+    }
+  }, 300);
 
   // Wer hält das Video an? Aufrufer von pause() merken (zeigt YouTube-Code oder andere Erweiterung)
   let lastPause = null;
