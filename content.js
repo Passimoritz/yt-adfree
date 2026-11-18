@@ -31,6 +31,8 @@
     const remove = new Set(cfg?.exceptions || []);
     const sels = [...new Set([...BASE_SELECTORS, ...(cfg?.selectors || [])])].filter((s) => !remove.has(s) && valid(s));
     style.textContent = sels.length ? sels.join(',\n') + '{display:none!important}' : '';
+    // Läuft doch eine Werbung (Überspring-Modus), bleibt das Bild schwarz, bis sie weggespult ist
+    style.textContent += '\n.html5-video-player.ad-showing video,.html5-video-player.ad-showing .ytp-ad-player-overlay-layout{opacity:0!important}';
     if (!style.isConnected) (document.head || document.documentElement).appendChild(style);
   }
   applyCss(null);
@@ -67,6 +69,8 @@
     ready();
   }
 
+  const diag = (ev, d) => { try { document.dispatchEvent(new CustomEvent('ytaf:diag', { detail: JSON.stringify({ ts: Date.now(), ev, url: location.pathname + location.search.slice(0, 40), ...d }) })); } catch {} };
+
   // ---------- Reserve-Überspringer
   const SKIP = '.ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad button, button[id^="skip-button"]';
   const seen = new WeakSet();
@@ -79,7 +83,11 @@
     const inAd = player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting');
     let s = state.get(player);
     if (inAd) {
-      if (!s) { s = { muted: video.muted, rate: video.playbackRate > 0 && video.playbackRate <= 4 ? video.playbackRate : 1, dur: contentDur.get(player) }; state.set(player, s); }
+      if (!s) {
+        s = { muted: video.muted, rate: video.playbackRate > 0 && video.playbackRate <= 4 ? video.playbackRate : 1, dur: contentDur.get(player), since: Date.now() };
+        state.set(player, s);
+        diag('ad-start', { adDur: Number.isFinite(video.duration) ? +video.duration.toFixed(1) : null, contentDur: s.dur || null });
+      }
       player.querySelectorAll(SKIP).forEach((b) => b.click());
       video.muted = true;
       // Eigene kurze Werbedatei → ans Ende springen. Eingebettete Werbung (gleiche Datei wie das Video,
@@ -93,6 +101,7 @@
     } else if (!s) {
       if (Number.isFinite(video.duration) && video.duration > 0) contentDur.set(player, video.duration);
     } else {
+      diag('ad-end', { ms: Date.now() - s.since });
       state.delete(player);
       video.playbackRate = s.rate;
       video.muted = s.muted;

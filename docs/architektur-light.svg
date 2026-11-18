@@ -17,8 +17,8 @@
   
   <g transform="translate(332 72)">
     <rect width="236" height="128" rx="12" fill="#f4f5f7" stroke="#c3c2b7" stroke-width="1"/>
-    <text x="16" y="28" font-size="15" font-weight="600" fill="#0b0b0b">rules.json</text>
-    <text x="16" y="52" font-size="13" fill="#52514e" xml:space="preserve">sperrt Anzeigen-Server</text><text x="16" y="72" font-size="13" fill="#52514e" xml:space="preserve">(declarativeNetRequest)</text>
+    <text x="16" y="28" font-size="15" font-weight="600" fill="#0b0b0b">Diagnose</text>
+    <text x="16" y="52" font-size="13" fill="#52514e" xml:space="preserve">Ablauf je Video</text><text x="16" y="72" font-size="13" fill="#52514e" xml:space="preserve">lokal gespeichert</text><text x="16" y="92" font-size="13" fill="#52514e" xml:space="preserve">(nur auf deinem Rechner)</text>
   </g>
   
   <g transform="translate(332 248)">
@@ -30,7 +30,7 @@
   <g transform="translate(618 72)">
     <rect width="230" height="316" rx="12" fill="#f4f5f7" stroke="#0E7C6B" stroke-width="2"/>
     <text x="16" y="28" font-size="15" font-weight="600" fill="#0b0b0b">content-main.js</text>
-    <text x="16" y="52" font-size="13" fill="#52514e" xml:space="preserve">läuft in der YouTube-Seite</text><text x="16" y="72" font-size="13" fill="#52514e" xml:space="preserve"></text><text x="16" y="92" font-size="13" fill="#52514e" xml:space="preserve">1  Videoanfrage bekommt</text><text x="16" y="112" font-size="13" fill="#52514e" xml:space="preserve">    werbefreie Kennung</text><text x="16" y="132" font-size="13" fill="#52514e" xml:space="preserve">2  restliche Werbedaten</text><text x="16" y="152" font-size="13" fill="#52514e" xml:space="preserve">    werden entfernt</text><text x="16" y="172" font-size="13" fill="#52514e" xml:space="preserve">3  Strafzeitgeber verkürzt</text><text x="16" y="192" font-size="13" fill="#52514e" xml:space="preserve">4  bei Problemen: nächste</text><text x="16" y="212" font-size="13" fill="#52514e" xml:space="preserve">    Kennung</text>
+    <text x="16" y="52" font-size="13" fill="#52514e" xml:space="preserve">läuft in der YouTube-Seite</text><text x="16" y="72" font-size="13" fill="#52514e" xml:space="preserve"></text><text x="16" y="92" font-size="13" fill="#52514e" xml:space="preserve">1  Videoanfrage bekommt</text><text x="16" y="112" font-size="13" fill="#52514e" xml:space="preserve">    werbefreie Kennung</text><text x="16" y="132" font-size="13" fill="#52514e" xml:space="preserve">2  angemeldet: nur diese</text><text x="16" y="152" font-size="13" fill="#52514e" xml:space="preserve">    Anfrage ohne Konto</text><text x="16" y="172" font-size="13" fill="#52514e" xml:space="preserve">3  restliche Werbedaten</text><text x="16" y="192" font-size="13" fill="#52514e" xml:space="preserve">    werden entfernt</text><text x="16" y="212" font-size="13" fill="#52514e" xml:space="preserve">4  Wächter gegen Hänger</text>
   </g>
   <line x1="157" y1="200" x2="157" y2="244" stroke="#898781" stroke-width="2" marker-end="url(#a-light)"/><text x="166" y="228" font-size="12" fill="#898781">Regeln</text>
   <line x1="282" y1="318" x2="328" y2="318" stroke="#898781" stroke-width="2" marker-end="url(#a-light)"/>

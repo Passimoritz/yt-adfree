@@ -103,22 +103,40 @@
   // Spots (im Test geprüft) – darum wird hier nie anhand dieser Daten im Video gesprungen.
   // In den Stream eingebettete Werbung behandelt content.js, sobald der Player sie markiert.
 
-  // ---------- Kennung für Videoanfragen (Index je Tab; bei Problemen nächste bzw. keine)
+  // ---------- Werbefreie Videoanfrage
+  // Jede Player-Anfrage bekommt eine Kennung, bei der YouTube keine Werbung einplant.
+  // Angemeldet ignoriert YouTube diese Kennung (Protokoll vom 18.11.2026: Werbedaten trotz Kennung,
+  // dann hält der Server das Video so lange zurück, wie die Werbung gedauert hätte). Darum geht bei
+  // Angemeldeten NUR die Player-Anfrage ohne Anmeldung raus (keine Cookies, keine Anmelde-Header).
+  // Kommentare, Empfehlungen, Likes und Verlauf laufen weiter über das Konto.
+  // Braucht ein Video die Anmeldung (Altersfreigabe, Mitglieder, privat), wird nur dieses normal geladen.
   const ss = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch {} return null; };
   const paramIdx = () => Number(ss(SS_IDX) || 0);
+  const SS_AUTH = '__ytaf_auth';
+  const authList = () => (ss(SS_AUTH) || '').split(',').filter(Boolean);
+  const needsAuth = (id) => authList().includes(id);
+  const addAuth = (id) => ss(SS_AUTH, [...authList().filter((x) => x !== id), id].slice(-50).join(','));
+  const loggedIn = () => { try { return !!window.ytcfg.get('LOGGED_IN'); } catch { return false; } };
   const isPlayerReq = (o) => o && typeof o === 'object' && typeof o.videoId === 'string' && o.context && o.context.client && o.playbackContext;
   let tweakedVideo = null;
+  const anonQueue = [];          // Player-Anfragen, die gleich ohne Anmeldung rausgehen
+  const anonVideos = new Set();  // Videos, deren Player-Antwort ohne Anmeldung kam
   // req = die Videoanfrage, ctx = ihr Kontext (bei get_watch liegt er eine Ebene höher)
-  function tweak(req, ctx) {
+  function tweak(req, ctx, viaGetWatch) {
     if (!ctx || !ctx.client || ctx.client.clientName !== 'WEB') return; // Einbettungen, TV, Musik unverändert lassen
+    if (needsAuth(req.videoId)) return;
     const p = params[paramIdx()];
     if (!p) return;
-    diag('req', { vid: req.videoId, client: ctx.client.clientName, ver: ctx.client.clientVersion, had: req.params || null, set: p, loggedIn: (() => { try { return window.ytcfg.get('LOGGED_IN'); } catch { return null; } })() });
+    const anon = !viaGetWatch && loggedIn(); // get_watch enthält auch Kommentare/Empfehlungen – dort nie abmelden
+    diag('req', { vid: req.videoId, ver: ctx.client.clientVersion, had: req.params || null, set: p, loggedIn: loggedIn(), anon, getWatch: !!viaGetWatch });
     req.params = p;
     tweakedVideo = req.videoId;
+    if (anon) anonQueue.push({ vid: req.videoId, ts: Date.now() });
   }
 
   function hasAds(o) { return !!o && typeof o === 'object' && ('adSlots' in o || 'adPlacements' in o || 'playerAds' in o); }
+  const watchId = () => { try { return /\/watch/.test(location.pathname) ? new URLSearchParams(location.search).get('v') : null; } catch { return null; } };
+  const hasStart = () => /[?&](t|start)=/.test(location.search);
 
   function reloadVideo(id, why) {
     diag('reload', { vid: id, why: why || '?' });
@@ -130,17 +148,40 @@
     tryIt(100);
   }
 
+  // Hauptvideo kam mit Werbedaten (erster Seitenaufruf oder Wechsel über get_watch mit Anmeldung)
+  // → einmal werbefrei nachladen; sonst wartet man die Länge der Werbung auf schwarzem Bild.
+  function reloadIfAds(vid, tries = 0) {
+    nativeSetTimeout(() => {
+      // Beim Weiterklicken kommt die Antwort teils vor der neuen Adresse – kurz darauf warten
+      if (vid !== watchId()) { if (tries < 10) reloadIfAds(vid, tries + 1); return; }
+      if (hasStart() || needsAuth(vid) || !params[paramIdx()]) return;
+      const last = (ss(SS_RETRY) || '').split('|');
+      if (last[0] === vid && Date.now() - Number(last[1] || 0) < 120000) return; // höchstens einmal je Video
+      ss(SS_RETRY, vid + '|' + Date.now());
+      reloadVideo(vid, 'werbedaten');
+    }, 400);
+  }
+
+  function playerResp(obj) {
+    if (obj.playabilityStatus) return obj;
+    if (obj.playerResponse && obj.playerResponse.playabilityStatus) return obj.playerResponse;
+    if (Array.isArray(obj)) for (const x of obj) if (x && x.playerResponse && x.playerResponse.playabilityStatus) return x.playerResponse;
+    return null;
+  }
+
   function prune(obj) {
     if (obj === null || typeof obj !== 'object') return obj;
     try {
-      // Anfrage mit Kennung wurde abgelehnt → nächste Kennung (oder keine) und einmal neu laden
-      const st = obj.playabilityStatus && obj.playabilityStatus.status;
-      const vid = obj.videoDetails && obj.videoDetails.videoId;
-      if (st) diag('resp', { vid, st, reason: obj.playabilityStatus.reason || null, ads: Object.keys(obj).filter((k) => /^ad|[a-z]Ads?$|^playerAds/.test(k)), sabr: !!(obj.streamingData && obj.streamingData.serverAbrStreamingUrl), tweaked: vid === tweakedVideo });
-      if (st === 'UNPLAYABLE' && tweakedVideo && vid === tweakedVideo && ss(SS_RETRY) !== vid) {
-        ss(SS_RETRY, vid);
-        ss(SS_IDX, String(paramIdx() + 1));
-        nativeSetTimeout(() => reloadVideo(vid, 'unplayable'), 0);
+      const pr = playerResp(obj);
+      if (pr) {
+        const st = pr.playabilityStatus.status;
+        const vid = pr.videoDetails && pr.videoDetails.videoId;
+        diag('resp', { vid, st, reason: pr.playabilityStatus.reason || null, ads: Object.keys(pr).filter((k) => /^ad|[a-z]Ads?$|^playerAds/.test(k)), tweaked: vid === tweakedVideo, anon: anonVideos.has(vid) });
+        if (st !== 'OK' && vid && vid === tweakedVideo && !needsAuth(vid)) {
+          // ohne Anmeldung bzw. mit Kennung nicht abspielbar → dieses Video ganz normal laden
+          addAuth(vid);
+          nativeSetTimeout(() => reloadVideo(vid, 'normal:' + st), 0);
+        } else if (st === 'OK' && vid && hasAds(pr)) reloadIfAds(vid);
       }
       for (const r of rules) del(obj, r, 0);
     } catch { /* nie die Seite kaputt machen */ }
@@ -162,7 +203,7 @@
     try {
       if (isPlayerReq(value)) tweak(value, value.context);
       else if (value && typeof value === 'object' && value.context && value.playerRequest
-        && typeof value.playerRequest.videoId === 'string' && value.playerRequest.playbackContext) tweak(value.playerRequest, value.context); // get_watch
+        && typeof value.playerRequest.videoId === 'string' && value.playerRequest.playbackContext) tweak(value.playerRequest, value.context, true); // get_watch
     } catch {}
     return nativeStringify.call(this, value, replacer, space);
   }, nativeStringify);
@@ -187,6 +228,28 @@
     return nativeJson.call(this).then(prune);
   }, nativeJson);
 
+  // Player-Anfrage (nur sie) ohne Anmeldung senden, wenn tweak() das vorgemerkt hat
+  const nativeFetch = window.fetch;
+  window.fetch = disguise(function fetch(input, init) {
+    try {
+      const url = typeof input === 'string' ? input : input && input.url;
+      if (anonQueue.length && typeof url === 'string' && /\/youtubei\/v1\/player(?:\?|$)/.test(url)) {
+        while (anonQueue.length && Date.now() - anonQueue[0].ts > 3000) anonQueue.shift();
+        const job = anonQueue.shift();
+        if (job) {
+          const base = new Request(input, init);
+          const h = new Headers(base.headers);
+          for (const k of ['authorization', 'x-goog-authuser', 'x-goog-pageid']) h.delete(k);
+          if (h.has('x-youtube-bootstrap-logged-in')) h.set('x-youtube-bootstrap-logged-in', 'false');
+          const req = new Request(base, { credentials: 'omit', headers: h, duplex: 'half' });
+          anonVideos.add(job.vid);
+          return nativeFetch.call(this, req);
+        }
+      }
+    } catch (e) { diag('anon-fehler', { msg: String(e && e.message).slice(0, 80) }); }
+    return nativeFetch.apply(this, arguments);
+  }, nativeFetch);
+
   // ytInitialPlayerResponse steht als Objekt-Literal im HTML (läuft nicht über JSON.parse)
   // Hatte sie Werbung, lädt der Player das Video einmal per Anfrage mit Kennung nach –
   // sonst hält YouTubes Server den Start so lange zurück, wie die Werbung gedauert hätte.
@@ -194,10 +257,7 @@
     const onInitial = (v) => {
       try {
         const id = v && v.videoDetails && v.videoDetails.videoId;
-        // Links mit Startzeit (&t=…) nicht nachladen: das Nachladen verliert dort die Startposition (getestet)
-        const hasStart = /[?&](t|start)=/.test(location.search);
-        if (id) diag('initial', { vid: id, ads: hasAds(v), hasStart, st: v.playabilityStatus && v.playabilityStatus.status });
-        if (id && hasAds(v) && !hasStart && params[paramIdx()] && /\/watch/.test(location.pathname)) nativeSetTimeout(() => reloadVideo(id, 'initial-ads'), 0);
+        if (id) diag('initial', { vid: id, ads: hasAds(v), hasStart: hasStart(), st: v.playabilityStatus && v.playabilityStatus.status, loggedIn: loggedIn() });
       } catch {}
       return prune(v);
     };

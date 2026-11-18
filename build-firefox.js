@@ -5,7 +5,7 @@ const path = require('path');
 
 const src = __dirname;
 const out = path.join(src, 'firefox');
-const FILES = ['background.js', 'content.js', 'content-main.js', 'rules.json'];
+const FILES = ['background.js', 'content.js', 'content-main.js'];
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out);

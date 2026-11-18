@@ -14,7 +14,7 @@
   <img alt="Manifest V3" src="https://img.shields.io/badge/Manifest-V3-0E7C6B">
   <img alt="Chrome" src="https://img.shields.io/badge/Chrome-ab%20111-15172E">
   <img alt="Firefox" src="https://img.shields.io/badge/Firefox-ab%20128-15172E">
-  <img alt="Version" src="https://img.shields.io/badge/Version-1.1.3-0E7C6B">
+  <img alt="Version" src="https://img.shields.io/badge/Version-1.2.0-0E7C6B">
 </p>
 
 ---
@@ -61,15 +61,15 @@ Gemessen am 18.11.2026 mit Chrome 157 (Playwright, unsichtbares Fenster, frische
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/architektur-dark.svg">
-  <img src="docs/architektur-light.svg" alt="Aufbau: uBlock-Listen → background.js → content.js → content-main.js; rules.json sperrt Anzeigen-Server" width="880">
+  <img src="docs/architektur-light.svg" alt="Aufbau: uBlock-Listen → background.js → content.js → content-main.js; Diagnose-Protokoll lokal" width="880">
 </picture>
 
 | Ebene | Wie |
 |---|---|
-| **Werbung vor, in und nach Videos** | Jede Videoanfrage des Players bekommt eine Kennung, bei der YouTube gar keine Werbung einplant. Damit entfällt auch die Strafwartezeit, mit der YouTube auf fehlende Werbung reagiert. Was trotzdem an Werbedaten ankommt, wird entfernt, bevor der Player es liest. Wird ein Video mit der Kennung unspielbar, schaltet die Erweiterung automatisch um (`content-main.js`). |
+| **Werbung vor, in und nach Videos** | Jede Videoanfrage des Players bekommt eine Kennung, bei der YouTube gar keine Werbung einplant. Damit entfällt auch die Strafwartezeit, mit der YouTube auf fehlende Werbung reagiert. Bist du angemeldet, ignoriert YouTube die Kennung – dann geht **nur die Videoanfrage selbst** ohne Konto raus; Kommentare, Empfehlungen, Likes und Verlauf laufen weiter über dein Konto. Braucht ein Video die Anmeldung (Altersfreigabe, Mitglieder, privat), lädt die Erweiterung genau dieses normal. Was trotzdem an Werbedaten ankommt, wird entfernt, bevor der Player es liest (`content-main.js`). |
 | **Eingebettete Werbung und alles, was durchrutscht** | Sobald der Player Werbung anzeigt: „Überspringen“ klicken, stumm schalten, mit 16× durchspulen, danach Ton und Tempo wiederherstellen. Bei eingebetteter Werbung wird nie im Video gesprungen, damit kein Inhalt verloren geht (`content.js`). |
 | **Banner, Feed-Anzeigen, Shorts-Werbung, Overlays, Anti-Adblock-Dialog** | Ausblenden per CSS (`content.js`) |
-| **Anzeigen- und Tracking-Server** | Netzwerksperre per `declarativeNetRequest` (`rules.json`) |
+| **Anti-Adblock-Dialog, Hänger** | Dialog wird geschlossen statt nur versteckt (sonst sperrt er Scrollen und Video). Ein Wächter setzt Pausen fort, die nicht von dir kommen, und fordert ein mitten im Video hängendes Video neu an (`content-main.js`). |
 
 ### Immer aktuell, ohne Updates
 
@@ -116,7 +116,6 @@ manifest.json        Chrome-Manifest (Firefox-Fassung per build-firefox.js)
 background.js        lädt und filtert die Regeln alle 6 Stunden
 content-main.js      läuft in der YouTube-Seite: Anfrage-Kennung, Datenfilter, Zeitgeber
 content.js           CSS-Ausblendung und Reserve-Überspringer
-rules.json           Netzwerksperre für Anzeigen-Server
 icons/               Erweiterungs-Icons
 docs/                Logo, Diagramme, Screenshots
 tools/grafiken.js    erzeugt Logo und Diagramme neu
@@ -133,10 +132,15 @@ npm run startzeit
 
 Die Skripte starten das installierte Chrome mit einem leeren Testprofil. Dein eigenes Profil bleibt unberührt. Weitere Läufe: `npm run navigation`, `npm run weiterklicken`, `npm run screenshots`. Grafiken neu erzeugen: `node tools/grafiken.js`.
 
+## Diagnose
+
+Die Erweiterung merkt sich lokal die letzten 400 Ereignisse (Anfrage, YouTube-Antwort, erstes Bild, Hänger, Pausen, Hinweise von YouTube). Sie verlassen den Rechner nicht. Ansehen: in `chrome://extensions` bei YT AdFree „Service Worker“ öffnen und in der Konsole `(await chrome.storage.local.get('diag')).diag` eingeben, oder auf YouTube in der Konsole (Stufe „Ausführlich“) nach `YT AdFree` filtern.
+
 ## Grenzen
 
 - Die **Regeln** aktualisieren sich selbst, der **Code** einer entpackt geladenen Erweiterung nicht. Baut YouTube grundlegend um, muss der Code angepasst werden.
 - Links mit Startzeit (`&t=…`) starten an der richtigen Stelle, aber erst nach einigen Sekunden.
 - Ob YouTube in den Stream eingebettete Werbung immer als Werbung markiert, ließ sich nicht prüfen. In den Testläufen kam keine vor.
+- Werbung nur schnell durchzuspulen hilft nicht: YouTubes Server hält das Video trotzdem so lange zurück, wie die Werbung gedauert hätte (gemessen 18.11.2026). Darum setzt die Erweiterung darauf, dass gar keine Werbung eingeplant wird.
 
 <sub>Logo entworfen in Claude Design. Die Filterregeln stammen von der [uBlock-Origin](https://github.com/uBlockOrigin/uAssets)-Community und [EasyList](https://easylist.to) und werden zur Laufzeit geladen, nicht mitgeliefert.</sub>

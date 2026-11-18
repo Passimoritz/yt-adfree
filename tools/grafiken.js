@@ -114,9 +114,9 @@ function architecture(mode) {
   <text x="32" y="44" font-size="20" font-weight="600" fill="${t.ink}">So arbeitet YT AdFree</text>
   ${box(32, 72, 250, 128, 'uBlock-Origin-Listen', ['filters.txt + Unterlisten', 'quick-fixes.txt', 'EasyList'])}
   ${box(32, 248, 250, 140, 'background.js', ['lädt alle 6 Stunden', 'zieht nur YouTube-Regeln', 'speichert sie lokal'])}
-  ${box(332, 72, 236, 128, 'rules.json', ['sperrt Anzeigen-Server', '(declarativeNetRequest)'])}
+  ${box(332, 72, 236, 128, 'Diagnose', ['Ablauf je Video', 'lokal gespeichert', '(nur auf deinem Rechner)'])}
   ${box(332, 248, 236, 140, 'content.js', ['blendet Werbeflächen aus', 'Reserve: Werbung stumm', 'mit 16× durchspulen'])}
-  ${box(618, 72, 230, 316, 'content-main.js', ['läuft in der YouTube-Seite', '', '1  Videoanfrage bekommt', '    werbefreie Kennung', '2  restliche Werbedaten', '    werden entfernt', '3  Strafzeitgeber verkürzt', '4  bei Problemen: nächste', '    Kennung'], t.brand)}
+  ${box(618, 72, 230, 316, 'content-main.js', ['läuft in der YouTube-Seite', '', '1  Videoanfrage bekommt', '    werbefreie Kennung', '2  angemeldet: nur diese', '    Anfrage ohne Konto', '3  restliche Werbedaten', '    werden entfernt', '4  Wächter gegen Hänger'], t.brand)}
   ${arrow(157, 200, 157, 244)}<text x="166" y="228" font-size="12" fill="${t.muted}">Regeln</text>
   ${arrow(282, 318, 328, 318)}
   ${arrow(568, 318, 614, 318)}
