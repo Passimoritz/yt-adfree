@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "YT AdFree",
+  "version": "1.1.0",
+  "description": "Blockiert YouTube-Werbung vor, in und nach Videos. Regeln aktualisieren sich automatisch.",
+  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "permissions": ["storage", "alarms", "declarativeNetRequest"],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "*://*.youtube-nocookie.com/*",
+    "*://youtubekids.com/*",
+    "*://*.youtubekids.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*", "*://youtubekids.com/*", "*://*.youtubekids.com/*"],
+      "js": ["content-main.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*", "*://youtubekids.com/*", "*://*.youtubekids.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "declarative_net_request": {
+    "rule_resources": [{ "id": "ads", "enabled": true, "path": "rules.json" }]
+  }
+}

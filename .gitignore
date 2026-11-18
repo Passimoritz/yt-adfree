@@ -1,0 +1,6 @@
+firefox/
+node_modules/
+tools/test/var/
+tools/test/preview/
+*.xpi
+_metadata/

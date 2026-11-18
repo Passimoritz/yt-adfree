@@ -1,0 +1,12 @@
+{
+  "name": "yt-adfree-tests",
+  "private": true,
+  "description": "Messläufe und Screenshots für YT AdFree (Playwright mit installiertem Chrome)",
+  "scripts": {
+    "startzeit": "node startzeit.js keine,voll",
+    "navigation": "node navigation.js mit",
+    "weiterklicken": "node weiterklicken.js",
+    "screenshots": "node screenshots.js"
+  },
+  "devDependencies": { "playwright": "^1.65.1" }
+}
