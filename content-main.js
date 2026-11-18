@@ -210,4 +210,56 @@
     if (v && v.paused && !v.ended) v.play().catch(() => {});
   }
   setInterval(closeEnforcement, 300);
+
+  // ---------- Wächter: Video hält mitten drin an
+  // 1) Pause, die nicht von dir kommt (kein Klick/Taste/Medientaste kurz davor) → weiterspielen.
+  // 2) Video hängt lange beim Laden an derselben Stelle (YouTube hält den Stream zurück)
+  //    → an genau dieser Stelle neu anfordern, dann mit werbefreier Kennung.
+  const dbg = (...a) => { try { console.debug('[YT AdFree]', ...a); } catch {} };
+  let lastGesture = 0;
+  for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, () => { lastGesture = Date.now(); }, true);
+  try {
+    const ms = navigator.mediaSession, nativeSAH = ms && ms.setActionHandler;
+    if (nativeSAH) ms.setActionHandler = disguise(function setActionHandler(action, handler) {
+      const h = typeof handler === 'function' ? function (...a) { lastGesture = Date.now(); return handler.apply(this, a); } : handler;
+      return nativeSAH.call(this, action, h);
+    }, nativeSAH);
+  } catch {}
+
+  const resumes = [];
+  const watched = new WeakSet();
+  let stallSince = 0, stallAt = -1, lastReload = 0;
+  const player = () => document.getElementById('movie_player');
+  const inAd = (p) => p && (p.classList.contains('ad-showing') || p.classList.contains('ad-interrupting'));
+
+  function watch(v) {
+    if (watched.has(v)) return;
+    watched.add(v);
+    v.addEventListener('pause', () => {
+      const p = player();
+      if (v.ended || inAd(p) || document.hidden || Date.now() - lastGesture < 1500) return;
+      if (document.querySelector('tp-yt-paper-dialog[opened]:not(:has(ytd-enforcement-message-view-model))')) return; // z. B. „Video pausiert. Weiter ansehen?“
+      const now = Date.now();
+      while (resumes.length && now - resumes[0] > 60000) resumes.shift();
+      if (resumes.length >= 3) return; // nie gegen YouTube anspielen
+      resumes.push(now);
+      nativeSetTimeout(() => { if (v.paused && !v.ended && !inAd(player()) && Date.now() - lastGesture > 1500) { dbg('ungewollte Pause bei', v.currentTime.toFixed(1), 's – weiter'); v.play().catch(() => {}); } }, 250);
+    });
+  }
+
+  setInterval(() => {
+    const p = player(), v = p && p.querySelector('video');
+    if (!v) return;
+    watch(v);
+    const loading = !v.paused && !v.ended && v.readyState < 3 && !inAd(p) && /\/watch/.test(location.pathname);
+    if (!loading || Math.abs(v.currentTime - stallAt) > 0.5) { stallSince = loading ? Date.now() : 0; stallAt = v.currentTime; return; }
+    if (stallSince && Date.now() - stallSince > 6000 && Date.now() - lastReload > 30000 && typeof p.loadVideoById === 'function') {
+      const data = p.getVideoData && p.getVideoData();
+      const id = data && data.video_id;
+      if (!id) return;
+      lastReload = Date.now(); stallSince = 0;
+      dbg('hängt seit 6 s bei', v.currentTime.toFixed(1), 's – neu anfordern');
+      p.loadVideoById({ videoId: id, startSeconds: Math.max(0, v.currentTime - 0.5) });
+    }
+  }, 1000);
 })();

@@ -50,6 +50,7 @@
   const SKIP = '.ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad button, button[id^="skip-button"]';
   const seen = new WeakSet();
   const state = new WeakMap(); // Player -> gemerkter Zustand vor der Werbung
+  const contentDur = new WeakMap(); // Player -> Länge des eigentlichen Videos
 
   function handle(player) {
     const video = player.querySelector('video');
@@ -57,16 +58,20 @@
     const inAd = player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting');
     let s = state.get(player);
     if (inAd) {
-      if (!s) { s = { muted: video.muted, rate: video.playbackRate > 0 && video.playbackRate <= 4 ? video.playbackRate : 1 }; state.set(player, s); }
+      if (!s) { s = { muted: video.muted, rate: video.playbackRate > 0 && video.playbackRate <= 4 ? video.playbackRate : 1, dur: contentDur.get(player) }; state.set(player, s); }
       player.querySelectorAll(SKIP).forEach((b) => b.click());
       video.muted = true;
-      // Eigene kurze Werbedatei → ans Ende springen. Eingebettete Werbung (langes Video) → nur schnell durchspulen.
-      if (Number.isFinite(video.duration) && video.duration > 0 && video.duration <= 180) {
+      // Eigene kurze Werbedatei → ans Ende springen. Eingebettete Werbung (gleiche Datei wie das Video,
+      // erkennbar an gleicher Länge) → nur schnell durchspulen, sonst landet man am Ende kurzer Videos.
+      const ownFile = !s.dur || Math.abs(video.duration - s.dur) > 1;
+      if (ownFile && Number.isFinite(video.duration) && video.duration > 0 && video.duration <= 180) {
         if (video.currentTime < video.duration - 0.1) video.currentTime = video.duration - 0.05;
       }
       if (video.playbackRate !== 16) video.playbackRate = 16;
       if (video.paused) video.play().catch(() => {});
-    } else if (s) {
+    } else if (!s) {
+      if (Number.isFinite(video.duration) && video.duration > 0) contentDur.set(player, video.duration);
+    } else {
       state.delete(player);
       video.playbackRate = s.rate;
       video.muted = s.muted;
@@ -84,7 +89,7 @@
   setInterval(() => {
     document.querySelectorAll('.html5-video-player').forEach((p) => {
       attach(p);
-      if (state.has(p)) handle(p);
+      handle(p);
     });
   }, 500);
 })();
